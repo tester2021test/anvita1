@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Anvita's Match & Drop — Multi-Puzzle</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: linear-gradient(135deg,#fff7e6 0%,#ffd6cc 100%);
+    --card: #ffffffee;
+    --accent: #ff6f61;
+    --ok: #6be56b;
+    --muted: #555;
+    --shadow: 0 8px 26px rgba(0,0,0,0.12);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:'Fredoka One',cursive;background:var(--bg);-webkit-font-smoothing:antialiased}
+  body{display:flex;align-items:flex-start;justify-content:center;padding:14px}
+  .app{width:100%;max-width:520px}
+  header{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+  header h1{font-size:1.25rem;margin:0;color:#222}
+  header p{margin:0;font-size:.86rem;color:var(--muted)}
+  .board{background:var(--card);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+  .top-row{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .controls{display:flex;gap:8px}
+  .btn{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:12px;font-weight:800;min-width:76px}
+  .btn.ghost{background:#fff;color:#333;border:2px solid rgba(0,0,0,0.06)}
+  .selectorSmall{display:flex;gap:6px;align-items:center;font-weight:700;color:#333}
+  .targets{display:flex;gap:10px;justify-content:space-around;padding:10px;margin-bottom:12px;flex-wrap:wrap}
+  .target{
+    width:26vw; max-width:120px; min-width:96px;
+    height:26vw; max-height:120px; min-height:96px;
+    border-radius:12px;background:rgba(255,255,255,0.95);box-shadow:0 8px 18px rgba(0,0,0,0.08);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:2rem;position:relative;
+    border:4px dashed rgba(0,0,0,0.06);
+  }
+  .target .label{font-size:.85rem;color:var(--muted);margin-top:6px;font-weight:700;text-align:center;padding:0 6px}
+  .draggables{display:flex;gap:12px;flex-wrap:nowrap;overflow-x:auto;padding:10px 6px}
+  .drag{
+    flex:0 0 auto; width:22vw; max-width:96px; min-width:68px; height:22vw; max-height:96px; min-height:68px;
+    border-radius:12px;background:linear-gradient(180deg,#fff,#f6f6f6);display:flex;align-items:center;justify-content:center;
+    font-size:2rem;box-shadow:0 10px 18px rgba(0,0,0,0.08);border:2px solid rgba(255,255,255,0.9);touch-action:none;user-select:none;
+    transition:transform .08s ease, opacity .12s;
+  }
+  .drag.locked{opacity:0.45;transform:scale(.98);pointer-events:none}
+  .hint{font-size:.9rem;color:var(--muted);text-align:center;margin-top:8px}
+  .footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+  .undo{background:#fff;border:2px solid rgba(0,0,0,0.06);padding:8px 10px;border-radius:12px;font-weight:700}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:var(--ok);color:#044;padding:10px 14px;border-radius:12px;font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,0.2);display:none;z-index:9999}
+  canvas#confetti{position:fixed;left:0;top:0;width:100%;height:100%;z-index:9998;pointer-events:none}
+  .levelBadge{font-weight:900;color:#333}
+  .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+</style>
+</head>
+<body>
+  <div class="app" role="main">
+    <header>
+      <h1>Anvita's Match & Drop</h1>
+      <p>Complete the puzzle — objects snap into place. Auto-advance after each puzzle.</p>
+    </header>
+
+    <div class="board" aria-live="polite">
+      <div class="top-row">
+        <div class="controls">
+          <button id="undoBtn" class="btn ghost" aria-label="Undo last move">Undo</button>
+          <button id="resetBtn" class="btn ghost" aria-label="Reset board">Reset</button>
+          <button id="nextBtn" class="btn ghost" aria-label="Next puzzle">Next</button>
+        </div>
+        <div class="selectorSmall">
+          <div>Level <span id="levelNum" class="levelBadge">1</span> / <span id="levelsTotal" class="levelBadge">1</span></div>
+        </div>
+      </div>
+
+      <div id="targets" class="targets" aria-label="Drop targets">
+        <!-- targets -->
+      </div>
+
+      <div class="hint" id="progressHint">Match all items</div>
+
+      <div id="draggables" class="draggables" aria-label="Draggable items">
+        <!-- draggables -->
+      </div>
+
+      <div class="footer">
+        <div style="font-size:.9rem;color:var(--muted)">Tip: drag slowly — items will snap close to the target.</div>
+        <div id="score" style="font-weight:900">0 / 0</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite">Nice!</div>
+  <canvas id="confetti"></canvas>
+
+<script>
+(() => {
+  // --- LEVELS: each level is an array of pairs (id, emoji, label)
+  const LEVELS = [
+    // Level 1: easy (2 pairs)
+    [
+      { id: 'apple', emoji: '🍎', label: 'Red Basket' },
+      { id: 'ball',  emoji: '⚽', label: 'Play Box' }
+    ],
+    // Level 2: medium (3 pairs)
+    [
+      { id: 'apple', emoji: '🍎', label: 'Red Basket' },
+      { id: 'fish',  emoji: '🐟', label: 'Blue Bowl' },
+      { id: 'sun',   emoji: '☀️', label: 'Yellow Sky' }
+    ],
+    // Level 3: medium (4 pairs)
+    [
+      { id: 'apple', emoji: '🍎', label: 'Red Basket' },
+      { id: 'fish',  emoji: '🐟', label: 'Blue Bowl' },
+      { id: 'sun',   emoji: '☀️', label: 'Yellow Sky' },
+      { id: 'car',   emoji: '🚗', label: 'Garage' }
+    ],
+    // Level 4: harder (5 pairs)
+    [
+      { id: 'apple', emoji: '🍎', label: 'Red Basket' },
+      { id: 'fish',  emoji: '🐟', label: 'Blue Bowl' },
+      { id: 'sun',   emoji: '☀️', label: 'Yellow Sky' },
+      { id: 'car',   emoji: '🚗', label: 'Garage' },
+      { id: 'star',  emoji: '⭐', label: 'Night Box' }
+    ]
+  ];
+
+  // --- DOM refs
+  const targetsEl = document.getElementById('targets');
+  const draggablesEl = document.getElementById('draggables');
+  const undoBtn = document.getElementById('undoBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const scoreEl = document.getElementById('score');
+  const toast = document.getElementById('toast');
+  const confettiCanvas = document.getElementById('confetti');
+  const levelNumEl = document.getElementById('levelNum');
+  const levelsTotalEl = document.getElementById('levelsTotal');
+  const progressHint = document.getElementById('progressHint');
+
+  // --- state
+  let levelIndex = 0;
+  let placed = {};           // id -> targetId
+  let lastPlaced = null;     // { id, targetId }
+  let audioCtx = null;
+  let confettiPieces = [];
+  let currentPairs = [];     // current level pairs
+
+  // --- canvas setup
+  function resizeCanvas(){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // --- confetti logic
+  function spawnConfetti(x,y){
+    for(let i=0;i<28;i++){
+      confettiPieces.push({
+        x: x + (Math.random()*80-40),
+        y: y + (Math.random()*60-30),
+        vx: (Math.random()*6-3),
+        vy: (Math.random()*-6-2),
+        size: Math.random()*8+4,
+        life: Math.random()*40+40,
+        color: ['#ff6b6b','#ffd93d','#6bcBff','#9b59b6','#7ed321'][Math.floor(Math.random()*5)]
+      });
+    }
+  }
+  const confettiCtx = confettiCanvas.getContext('2d');
+  function confettiLoop(){
+    confettiCtx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+    for(let i=confettiPieces.length-1;i>=0;i--){
+      const p = confettiPieces[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.2;
+      p.size *= 0.995;
+      p.life--;
+      confettiCtx.fillStyle = p.color;
+      confettiCtx.fillRect(p.x, p.y, Math.max(1,p.size), Math.max(1,p.size*0.6));
+      if(p.life<=0 || p.size<0.5) confettiPieces.splice(i,1);
+    }
+    requestAnimationFrame(confettiLoop);
+  }
+  confettiLoop();
+
+  // --- audio / speech helpers
+  function ensureAudio(){ if(!audioCtx){ try{ const AC = window.AudioContext || window.webkitAudioContext; audioCtx = new AC(); }catch(e){ audioCtx = null; } } return audioCtx; }
+  async function resumeAudio(){ if(audioCtx && audioCtx.state==='suspended'){ try{ await audioCtx.resume(); }catch(e){} } }
+  function playSuccessTone(){ const ctx = ensureAudio(); if(!ctx) return; if(ctx.state==='suspended') ctx.resume().catch(()=>{}); const o = ctx.createOscillator(); const g = ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(520, ctx.currentTime); g.gain.setValueAtTime(0.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6); o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.62); }
+  function speak(text){ if(!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.95; u.pitch = 1.05; window.speechSynthesis.speak(u); }
+  function vibrate(){ if(navigator.vibrate) navigator.vibrate(40); }
+
+  // --- UI builders
+  function buildTargets(pairs){
+    targetsEl.innerHTML = '';
+    pairs.forEach(pair => {
+      const t = document.createElement('div');
+      t.className = 'target';
+      t.dataset.targetFor = pair.id;
+      t.id = 'target-' + pair.id;
+      t.innerHTML = `<div aria-hidden="true" style="font-size:1.4rem;opacity:.2">${pair.emoji}</div><div class="label">${pair.label}</div>`;
+      targetsEl.appendChild(t);
+    });
+  }
+
+  function buildDraggables(pairs){
+    draggablesEl.innerHTML = '';
+    // shuffle
+    const copy = pairs.slice().sort(()=> Math.random() - 0.5);
+    copy.forEach(pair => {
+      const d = document.createElement('div');
+      d.className = 'drag';
+      d.id = 'drag-' + pair.id;
+      d.dataset.id = pair.id;
+      d.innerHTML = `<span aria-hidden="true">${pair.emoji}</span>`;
+      draggablesEl.appendChild(d);
+      attachPointerHandlers(d);
+    });
+  }
+
+  // --- pointer drag logic
+  function attachPointerHandlers(el){
+    let isDragging = false;
+    let startX=0, startY=0, offsetX=0, offsetY=0;
+    let originalRect = null;
+
+    function onPointerDown(ev){
+      ev.preventDefault();
+      el.style.zIndex = 1000;
+      el.setPointerCapture?.(ev.pointerId);
+      isDragging = true;
+      startX = ev.clientX; startY = ev.clientY;
+      const rect = el.getBoundingClientRect();
+      originalRect = rect;
+      offsetX = ev.clientX - rect.left;
+      offsetY = ev.clientY - rect.top;
+      el.style.position = 'fixed';
+      el.style.left = rect.left + 'px';
+      el.style.top  = rect.top + 'px';
+      el.style.width = rect.width + 'px';
+      el.style.height = rect.height + 'px';
+      el.style.transition = 'transform 0.08s';
+      el.style.touchAction = 'none';
+    }
+
+    function onPointerMove(ev){
+      if(!isDragging) return;
+      ev.preventDefault();
+      const x = ev.clientX - offsetX;
+      const y = ev.clientY - offsetY;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+    }
+
+    function onPointerUp(ev){
+      if(!isDragging) return;
+      ev.preventDefault();
+      isDragging = false;
+      el.releasePointerCapture?.(ev.pointerId);
+      const drop = findClosestTarget(ev.clientX, ev.clientY);
+      if(drop && drop.dataset.targetFor === el.dataset.id){
+        snapToTarget(el, drop);
+        onCorrectMatch(el.dataset.id, drop);
+      } else {
+        animateReturn(el, originalRect);
+      }
+    }
+
+    el.addEventListener('pointerdown', onPointerDown, {passive:false});
+    window.addEventListener('pointermove', onPointerMove, {passive:false});
+    window.addEventListener('pointerup', onPointerUp, {passive:false});
+  }
+
+  function findClosestTarget(x,y, radius=90){
+    const targets = Array.from(document.querySelectorAll('.target'));
+    let nearest = null; let minDist = Infinity;
+    targets.forEach(t => {
+      const r = t.getBoundingClientRect();
+      const cx = r.left + r.width/2; const cy = r.top + r.height/2;
+      const d = Math.hypot(cx - x, cy - y);
+      if(d < minDist && d <= radius){ minDist = d; nearest = t; }
+    });
+    return nearest;
+  }
+
+  function animateReturn(el, rect){
+    el.style.transition = 'left .28s ease, top .28s ease, transform .16s';
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    setTimeout(()=> {
+      el.style.position = '';
+      el.style.left = ''; el.style.top = ''; el.style.width=''; el.style.height=''; el.style.zIndex=''; el.style.transition='';
+    }, 300);
+  }
+
+  function snapToTarget(el, target){
+    const rTarget = target.getBoundingClientRect();
+    el.style.left = (rTarget.left + (rTarget.width - el.offsetWidth)/2) + 'px';
+    el.style.top  = (rTarget.top  + (rTarget.height - el.offsetHeight)/2) + 'px';
+    el.style.transition = 'left .22s ease, top .22s ease, transform .14s';
+    setTimeout(()=> {
+      el.classList.add('locked');
+      el.style.position = 'absolute';
+      target.appendChild(el);
+      el.style.left=''; el.style.top=''; el.style.width=''; el.style.height=''; el.style.position=''; el.style.zIndex=''; el.style.transition='';
+    }, 260);
+  }
+
+  function onCorrectMatch(id, target){
+    placed[id] = target.id;
+    lastPlaced = { id, targetId: target.id };
+    updateScore();
+    const rect = target.getBoundingClientRect();
+    spawnConfetti(rect.left + rect.width/2, rect.top + rect.height/2);
+    playSuccessTone();
+    speak('Well done!');
+    vibrate();
+    showToast('Nice!');
+    // check completion
+    if(Object.keys(placed).length === currentPairs.length){
+      // level complete
+      setTimeout(()=> levelComplete(), 700);
+    }
+  }
+
+  // --- level flow
+  function levelComplete(){
+    showToast('Level complete!');
+    // big celebration
+    spawnConfetti(window.innerWidth/2, window.innerHeight/3);
+    playSuccessTone();
+    speak('Great job! Moving to next puzzle.');
+    // auto-advance after short delay
+    setTimeout(()=> {
+      levelIndex++;
+      if(levelIndex >= LEVELS.length){
+        // finished all levels: congrats and restart from first
+        showCongratsAndRestart();
+      } else {
+        loadLevel(levelIndex);
+      }
+    }, 1400);
+  }
+
+  function showCongratsAndRestart(){
+    showToast('You finished all puzzles! Restarting...');
+    speak('You finished all puzzles! Restarting from the first one.');
+    setTimeout(()=> {
+      levelIndex = 0;
+      loadLevel(levelIndex);
+    }, 1600);
+  }
+
+  // --- score & UI
+  function updateScore(){
+    const total = currentPairs.length;
+    const done = Object.keys(placed).length;
+    scoreEl.textContent = `${done} / ${total}`;
+    progressHint.textContent = `Match ${total} items`;
+    levelNumEl.textContent = String(levelIndex + 1);
+    levelsTotalEl.textContent = String(LEVELS.length);
+  }
+
+  function showToast(text='Nice!'){
+    toast.textContent = text; toast.style.display = 'block';
+    setTimeout(()=> toast.style.display = 'none', 900);
+  }
+
+  // --- undo & reset & next
+  undoBtn.addEventListener('click', ()=>{
+    if(!lastPlaced) return;
+    const id = lastPlaced.id;
+    const el = document.getElementById('drag-' + id);
+    if(el){
+      // unlocked and moved back to draggables
+      delete placed[id];
+      updateScore();
+      el.classList.remove('locked');
+      el.style.position = ''; el.style.left=''; el.style.top=''; el.style.width=''; el.style.height='';
+      draggablesEl.appendChild(el);
+      lastPlaced = null;
+    }
+  });
+
+  resetBtn.addEventListener('click', ()=>{
+    // reset current level (keep same levelIndex)
+    loadLevel(levelIndex);
+  });
+
+  nextBtn.addEventListener('click', ()=>{
+    // skip to next level (wrap)
+    levelIndex = (levelIndex + 1) % LEVELS.length;
+    loadLevel(levelIndex);
+  });
+
+  // --- build & load level
+  function loadLevel(idx){
+    placed = {}; lastPlaced = null;
+    currentPairs = LEVELS[idx].slice();
+    buildTargets(currentPairs);
+    buildDraggables(currentPairs);
+    updateScore();
+    // voice hint
+    speak(`Puzzle ${idx+1}. Match the items.`);
+  }
+
+  // --- init build functions (use earlier versions but ensure fresh attach)
+  function buildTargets(pairs){
+    targetsEl.innerHTML = '';
+    pairs.forEach(pair => {
+      const t = document.createElement('div');
+      t.className = 'target';
+      t.dataset.targetFor = pair.id;
+      t.id = 'target-' + pair.id;
+      t.innerHTML = `<div aria-hidden="true" style="font-size:1.4rem;opacity:.2">${pair.emoji}</div><div class="label">${pair.label}</div>`;
+      targetsEl.appendChild(t);
+    });
+  }
+
+  function buildDraggables(pairs){
+    draggablesEl.innerHTML = '';
+    const copy = pairs.slice().sort(()=> Math.random() - 0.5);
+    copy.forEach(pair => {
+      const d = document.createElement('div');
+      d.className = 'drag';
+      d.id = 'drag-' + pair.id;
+      d.dataset.id = pair.id;
+      d.innerHTML = `<span aria-hidden="true">${pair.emoji}</span>`;
+      draggablesEl.appendChild(d);
+      attachPointerHandlers(d);
+    });
+  }
+
+  // --- pointer attach (duplicated for closure)
+  function attachPointerHandlers(el){
+    let isDragging = false;
+    let startX=0, startY=0, offsetX=0, offsetY=0;
+    let originalRect = null;
+
+    function onPointerDown(ev){
+      ev.preventDefault();
+      el.style.zIndex = 1000;
+      el.setPointerCapture?.(ev.pointerId);
+      isDragging = true;
+      startX = ev.clientX; startY = ev.clientY;
+      const rect = el.getBoundingClientRect();
+      originalRect = rect;
+      offsetX = ev.clientX - rect.left;
+      offsetY = ev.clientY - rect.top;
+      el.style.position = 'fixed';
+      el.style.left = rect.left + 'px';
+      el.style.top  = rect.top + 'px';
+      el.style.width = rect.width + 'px';
+      el.style.height = rect.height + 'px';
+      el.style.transition = 'transform 0.08s';
+      el.style.touchAction = 'none';
+    }
+
+    function onPointerMove(ev){
+      if(!isDragging) return;
+      ev.preventDefault();
+      const x = ev.clientX - offsetX;
+      const y = ev.clientY - offsetY;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+    }
+
+    function onPointerUp(ev){
+      if(!isDragging) return;
+      ev.preventDefault();
+      isDragging = false;
+      el.releasePointerCapture?.(ev.pointerId);
+      const drop = findClosestTarget(ev.clientX, ev.clientY);
+      if(drop && drop.dataset.targetFor === el.dataset.id){
+        snapToTarget(el, drop);
+        onCorrectMatch(el.dataset.id, drop);
+      } else {
+        animateReturn(el, originalRect);
+      }
+    }
+
+    el.addEventListener('pointerdown', onPointerDown, {passive:false});
+    window.addEventListener('pointermove', onPointerMove, {passive:false});
+    window.addEventListener('pointerup', onPointerUp, {passive:false});
+  }
+
+  function findClosestTarget(x,y, radius=90){
+    const targets = Array.from(document.querySelectorAll('.target'));
+    let nearest = null; let minDist = Infinity;
+    targets.forEach(t => {
+      const r = t.getBoundingClientRect();
+      const cx = r.left + r.width/2; const cy = r.top + r.height/2;
+      const d = Math.hypot(cx - x, cy - y);
+      if(d < minDist && d <= radius){ minDist = d; nearest = t; }
+    });
+    return nearest;
+  }
+
+  function animateReturn(el, rect){
+    el.style.transition = 'left .28s ease, top .28s ease, transform .16s';
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    setTimeout(()=> {
+      el.style.position = '';
+      el.style.left = ''; el.style.top = ''; el.style.width=''; el.style.height=''; el.style.zIndex=''; el.style.transition='';
+    }, 300);
+  }
+
+  function snapToTarget(el, target){
+    const rTarget = target.getBoundingClientRect();
+    el.style.left = (rTarget.left + (rTarget.width - el.offsetWidth)/2) + 'px';
+    el.style.top  = (rTarget.top  + (rTarget.height - el.offsetHeight)/2) + 'px';
+    el.style.transition = 'left .22s ease, top .22s ease, transform .14s';
+    setTimeout(()=> {
+      el.classList.add('locked');
+      el.style.position = 'absolute';
+      target.appendChild(el);
+      el.style.left=''; el.style.top=''; el.style.width=''; el.style.height=''; el.style.position=''; el.style.zIndex=''; el.style.transition='';
+    }, 260);
+  }
+
+  // --- level start
+  function init(){
+    levelIndex = 0;
+    levelsTotalEl.textContent = String(LEVELS.length);
+    loadLevel(levelIndex);
+    // ensure audio created after first gesture
+    window.addEventListener('pointerdown', function initAudio(){ ensureAudio(); window.removeEventListener('pointerdown', initAudio); }, {passive:true});
+  }
+
+  // expose helpers used earlier
+  function updateScore(){ const total = currentPairs.length; const done = Object.keys(placed).length; scoreEl.textContent = `${done} / ${total}`; progressHint.textContent = `Match ${total} items`; levelNumEl.textContent = String(levelIndex + 1); }
+
+  // kick off
+  init();
+
+  // --- small helper: spawnConfetti alias ---
+  function spawnConfetti(x,y){
+    for(let i=0;i<28;i++){
+      confettiPieces.push({
+        x: Math.max(0, Math.min(window.innerWidth, x||window.innerWidth/2)) + (Math.random()*80-40),
+        y: Math.max(0, Math.min(window.innerHeight, y||window.innerHeight/3)) + (Math.random()*60-30),
+        vx: (Math.random()*6-3),
+        vy: (Math.random()*-6-2),
+        size: Math.random()*8+4,
+        life: Math.random()*40+40,
+        color: ['#ff6b6b','#ffd93d','#6bcBff','#9b59b6','#7ed321'][Math.floor(Math.random()*5)]
+      });
+    }
+  }
+
+  // kick confetti loop already started above
+
+})();
+</script>
+</body>
+</html>
+
