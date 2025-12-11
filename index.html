@@ -1,557 +1,387 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Anvita's Match & Drop — Multi-Puzzle</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Anvita's Match World</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg: linear-gradient(135deg,#fff7e6 0%,#ffd6cc 100%);
-    --card: #ffffffee;
-    --accent: #ff6f61;
-    --ok: #6be56b;
-    --muted: #555;
-    --shadow: 0 8px 26px rgba(0,0,0,0.12);
+  :root {
+    --bg-sky: #87CEEB;
+    --btn-skip: #FF9F1C;
+    --btn-sound: #2EC4B6;
+    --btn-home: #FF5A5F;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:'Fredoka One',cursive;background:var(--bg);-webkit-font-smoothing:antialiased}
-  body{display:flex;align-items:flex-start;justify-content:center;padding:14px}
-  .app{width:100%;max-width:520px}
-  header{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
-  header h1{font-size:1.25rem;margin:0;color:#222}
-  header p{margin:0;font-size:.86rem;color:var(--muted)}
-  .board{background:var(--card);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
-  .top-row{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:10px}
-  .controls{display:flex;gap:8px}
-  .btn{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:12px;font-weight:800;min-width:76px}
-  .btn.ghost{background:#fff;color:#333;border:2px solid rgba(0,0,0,0.06)}
-  .selectorSmall{display:flex;gap:6px;align-items:center;font-weight:700;color:#333}
-  .targets{display:flex;gap:10px;justify-content:space-around;padding:10px;margin-bottom:12px;flex-wrap:wrap}
-  .target{
-    width:26vw; max-width:120px; min-width:96px;
-    height:26vw; max-height:120px; min-height:96px;
-    border-radius:12px;background:rgba(255,255,255,0.95);box-shadow:0 8px 18px rgba(0,0,0,0.08);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:2rem;position:relative;
-    border:4px dashed rgba(0,0,0,0.06);
+
+  body {
+    margin: 0; overflow: hidden;
+    background: linear-gradient(180deg, var(--bg-sky) 0%, #E0F7FA 100%);
+    font-family: 'Fredoka One', cursive;
+    touch-action: none; user-select: none;
+    height: 100vh; display: flex; flex-direction: column;
   }
-  .target .label{font-size:.85rem;color:var(--muted);margin-top:6px;font-weight:700;text-align:center;padding:0 6px}
-  .draggables{display:flex;gap:12px;flex-wrap:nowrap;overflow-x:auto;padding:10px 6px}
-  .drag{
-    flex:0 0 auto; width:22vw; max-width:96px; min-width:68px; height:22vw; max-height:96px; min-height:68px;
-    border-radius:12px;background:linear-gradient(180deg,#fff,#f6f6f6);display:flex;align-items:center;justify-content:center;
-    font-size:2rem;box-shadow:0 10px 18px rgba(0,0,0,0.08);border:2px solid rgba(255,255,255,0.9);touch-action:none;user-select:none;
-    transition:transform .08s ease, opacity .12s;
+
+  /* --- ANIMATIONS --- */
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-10px) rotate(-5deg); }
+    50% { transform: translateX(10px) rotate(5deg); }
+    75% { transform: translateX(-10px) rotate(-5deg); }
+    100% { transform: translateX(0); }
   }
-  .drag.locked{opacity:0.45;transform:scale(.98);pointer-events:none}
-  .hint{font-size:.9rem;color:var(--muted);text-align:center;margin-top:8px}
-  .footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
-  .undo{background:#fff;border:2px solid rgba(0,0,0,0.06);padding:8px 10px;border-radius:12px;font-weight:700}
-  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:var(--ok);color:#044;padding:10px 14px;border-radius:12px;font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,0.2);display:none;z-index:9999}
-  canvas#confetti{position:fixed;left:0;top:0;width:100%;height:100%;z-index:9998;pointer-events:none}
-  .levelBadge{font-weight:900;color:#333}
-  .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+
+  .shake-it { animation: shake 0.4s ease-in-out; border-color: #ff4757 !important; }
+
+  /* --- LAYOUT --- */
+  #welcomeScreen {
+    position: absolute; top:0; left:0; width:100%; height:100%;
+    background: rgba(255,255,255,0.98); z-index: 9999;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center; gap: 20px;
+  }
+  .btn-start {
+    background: var(--btn-skip); color: white; border: none;
+    padding: 15px 60px; font-size: 2rem; border-radius: 50px;
+    box-shadow: 0 8px 0 #E08E00; cursor: pointer;
+  }
+  .btn-start:active { transform: translateY(4px); box-shadow: 0 4px 0 #E08E00; }
+  
+  header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+  .score-board { font-size: 1.3rem; color: #444; background: rgba(255,255,255,0.8); padding: 8px 20px; border-radius: 30px; }
+
+  .game-container {
+    flex: 1; z-index: 10; display: flex; flex-direction: column;
+    justify-content: space-evenly; align-items: center;
+    width: 100%; max-width: 600px; margin: 0 auto;
+    transition: opacity 0.3s;
+  }
+
+  /* TARGETS */
+  .targets-area { display: flex; gap: 20px; }
+  .target-box {
+    width: 38vw; height: 38vw; max-width: 150px; max-height: 150px;
+    background: rgba(255,255,255,0.4); border: 4px dashed #888; border-radius: 25px;
+    display: flex; justify-content: center; align-items: center;
+    position: relative; transition: 0.3s;
+  }
+  .target-box img { width: 75%; height: 75%; object-fit: contain; opacity: 0.25; filter: grayscale(100%); }
+  .target-box.success { background: #fff; border-style: solid; border-color: #4CAF50; transform: scale(1.1); box-shadow: 0 0 30px #4CAF50; }
+  .target-box.success img { opacity: 1; filter: none; }
+
+  /* DRAGGABLES */
+  .drag-area { display: flex; gap: 20px; height: 160px; align-items: center; }
+  .drag-item {
+    width: 32vw; height: 32vw; max-width: 120px; max-height: 120px;
+    background: #fff; border-radius: 50%; border: 5px solid #fff;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    display: flex; justify-content: center; align-items: center;
+    cursor: grab; touch-action: none; z-index: 20; position: relative;
+    font-size: 3rem; /* For Emoji Fallback */
+  }
+  .drag-item img { width: 70%; height: 70%; object-fit: contain; pointer-events: none; }
+  .drag-item:active { transform: scale(1.1); }
+
+  /* CONTROLS */
+  .controls { z-index: 10; display: flex; gap: 20px; padding-bottom: 25px; justify-content: center; }
+  .icon-btn {
+    width: 60px; height: 60px; border-radius: 50%; border: none;
+    color: white; font-size: 1.8rem; cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center;
+  }
+  .icon-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  .btn-home { background: var(--btn-home); }
+  .btn-speak { background: var(--btn-sound); }
+  .btn-skip { background: var(--btn-skip); }
+
+  canvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 1000; }
 </style>
 </head>
 <body>
-  <div class="app" role="main">
-    <header>
-      <h1>Anvita's Match & Drop</h1>
-      <p>Complete the puzzle — objects snap into place. Auto-advance after each puzzle.</p>
-    </header>
 
-    <div class="board" aria-live="polite">
-      <div class="top-row">
-        <div class="controls">
-          <button id="undoBtn" class="btn ghost" aria-label="Undo last move">Undo</button>
-          <button id="resetBtn" class="btn ghost" aria-label="Reset board">Reset</button>
-          <button id="nextBtn" class="btn ghost" aria-label="Next puzzle">Next</button>
-        </div>
-        <div class="selectorSmall">
-          <div>Level <span id="levelNum" class="levelBadge">1</span> / <span id="levelsTotal" class="levelBadge">1</span></div>
-        </div>
-      </div>
+  <div style="position:absolute; top:-40px; right:-40px; width:140px; height:140px; background:#FFD93D; border-radius:50%; box-shadow:0 0 50px #FF9F1C; z-index:0;"></div>
 
-      <div id="targets" class="targets" aria-label="Drop targets">
-        <!-- targets -->
-      </div>
-
-      <div class="hint" id="progressHint">Match all items</div>
-
-      <div id="draggables" class="draggables" aria-label="Draggable items">
-        <!-- draggables -->
-      </div>
-
-      <div class="footer">
-        <div style="font-size:.9rem;color:var(--muted)">Tip: drag slowly — items will snap close to the target.</div>
-        <div id="score" style="font-weight:900">0 / 0</div>
-      </div>
-    </div>
+  <div id="welcomeScreen">
+    <h1>🎈 Match Game</h1>
+    <input type="text" id="kidName" value="Anvita" style="padding:10px; font-size:1.5rem; border-radius:15px; border:3px solid #ccc; text-align:center;">
+    <button class="btn-start" onclick="startGame()">PLAY</button>
   </div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite">Nice!</div>
+  <header>
+    <div id="displayName" style="font-size:1.2rem; color:#333;">Player</div>
+    <div class="score-board">⭐ <span id="scoreVal">0</span></div>
+  </header>
+
+  <div class="game-container" id="gameBoard">
+    <div class="targets-area" id="targets"></div>
+    <div class="drag-area" id="draggables"></div>
+  </div>
+
+  <div class="controls">
+    <button class="icon-btn btn-home" onclick="goHome()">🏠</button>
+    <button class="icon-btn btn-speak" onclick="repeatNames()">🔊</button>
+    <button class="icon-btn btn-skip" onclick="skipLevel()">➜</button>
+  </div>
+
   <canvas id="confetti"></canvas>
 
 <script>
-(() => {
-  // --- LEVELS: each level is an array of pairs (id, emoji, label)
-  const LEVELS = [
-    // Level 1: easy (2 pairs)
-    [
-      { id: 'apple', emoji: '🍎', label: 'Red Basket' },
-      { id: 'ball',  emoji: '⚽', label: 'Play Box' }
-    ],
-    // Level 2: medium (3 pairs)
-    [
-      { id: 'apple', emoji: '🍎', label: 'Red Basket' },
-      { id: 'fish',  emoji: '🐟', label: 'Blue Bowl' },
-      { id: 'sun',   emoji: '☀️', label: 'Yellow Sky' }
-    ],
-    // Level 3: medium (4 pairs)
-    [
-      { id: 'apple', emoji: '🍎', label: 'Red Basket' },
-      { id: 'fish',  emoji: '🐟', label: 'Blue Bowl' },
-      { id: 'sun',   emoji: '☀️', label: 'Yellow Sky' },
-      { id: 'car',   emoji: '🚗', label: 'Garage' }
-    ],
-    // Level 4: harder (5 pairs)
-    [
-      { id: 'apple', emoji: '🍎', label: 'Red Basket' },
-      { id: 'fish',  emoji: '🐟', label: 'Blue Bowl' },
-      { id: 'sun',   emoji: '☀️', label: 'Yellow Sky' },
-      { id: 'car',   emoji: '🚗', label: 'Garage' },
-      { id: 'star',  emoji: '⭐', label: 'Night Box' }
-    ]
-  ];
+// --- DATABASE WITH EMOJI FALLBACKS ---
+const DATABASE = [
+  { id: 'lion', name: 'Lion', emoji: '🦁', img: 'https://cdn-icons-png.flaticon.com/512/616/616412.png' },
+  { id: 'monkey', name: 'Monkey', emoji: '🐵', img: 'https://cdn-icons-png.flaticon.com/512/616/616551.png' },
+  { id: 'cat', name: 'Cat', emoji: '🐱', img: 'https://cdn-icons-png.flaticon.com/512/616/616430.png' },
+  { id: 'dog', name: 'Dog', emoji: '🐶', img: 'https://cdn-icons-png.flaticon.com/512/616/616408.png' },
+  { id: 'apple', name: 'Apple', emoji: '🍎', img: 'https://cdn-icons-png.flaticon.com/512/415/415733.png' },
+  { id: 'banana', name: 'Banana', emoji: '🍌', img: 'https://cdn-icons-png.flaticon.com/512/415/415682.png' },
+  { id: 'grape', name: 'Grapes', emoji: '🍇', img: 'https://cdn-icons-png.flaticon.com/512/415/415712.png' },
+  { id: 'car', name: 'Car', emoji: '🚗', img: 'https://cdn-icons-png.flaticon.com/512/2554/2554936.png' },
+  { id: 'bus', name: 'Bus', emoji: '🚌', img: 'https://cdn-icons-png.flaticon.com/512/2554/2554905.png' },
+  { id: 'plane', name: 'Plane', emoji: '✈️', img: 'https://cdn-icons-png.flaticon.com/512/2554/2554909.png' },
+  { id: 'sun', name: 'Sun', emoji: '☀️', img: 'https://cdn-icons-png.flaticon.com/512/869/869869.png' },
+  { id: 'moon', name: 'Moon', emoji: '🌙', img: 'https://cdn-icons-png.flaticon.com/512/1162/1162483.png' }
+];
 
-  // --- DOM refs
-  const targetsEl = document.getElementById('targets');
-  const draggablesEl = document.getElementById('draggables');
-  const undoBtn = document.getElementById('undoBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const scoreEl = document.getElementById('score');
-  const toast = document.getElementById('toast');
-  const confettiCanvas = document.getElementById('confetti');
-  const levelNumEl = document.getElementById('levelNum');
-  const levelsTotalEl = document.getElementById('levelsTotal');
-  const progressHint = document.getElementById('progressHint');
+let currentPlayer = "Anvita";
+let currentScore = 0;
+let currentItems = [];
+let itemsToMatch = 0;
+let autoNextTimer = null;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  // --- state
-  let levelIndex = 0;
-  let placed = {};           // id -> targetId
-  let lastPlaced = null;     // { id, targetId }
-  let audioCtx = null;
-  let confettiPieces = [];
-  let currentPairs = [];     // current level pairs
+// --- SOUND ENGINE (Synthesized - No files needed) ---
+function playSound(type) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
 
-  // --- canvas setup
-  function resizeCanvas(){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; }
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
-
-  // --- confetti logic
-  function spawnConfetti(x,y){
-    for(let i=0;i<28;i++){
-      confettiPieces.push({
-        x: x + (Math.random()*80-40),
-        y: y + (Math.random()*60-30),
-        vx: (Math.random()*6-3),
-        vy: (Math.random()*-6-2),
-        size: Math.random()*8+4,
-        life: Math.random()*40+40,
-        color: ['#ff6b6b','#ffd93d','#6bcBff','#9b59b6','#7ed321'][Math.floor(Math.random()*5)]
-      });
-    }
+  const now = audioCtx.currentTime;
+  if(type === 'pop') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.linearRampToValueAtTime(0, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
+  } else if(type === 'success') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(500, now);
+    osc.frequency.setValueAtTime(800, now + 0.1);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.linearRampToValueAtTime(0, now + 0.4);
+    osc.start(now); osc.stop(now + 0.4);
+  } else if(type === 'error') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.linearRampToValueAtTime(0, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
   }
-  const confettiCtx = confettiCanvas.getContext('2d');
-  function confettiLoop(){
-    confettiCtx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
-    for(let i=confettiPieces.length-1;i>=0;i--){
-      const p = confettiPieces[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.2;
-      p.size *= 0.995;
-      p.life--;
-      confettiCtx.fillStyle = p.color;
-      confettiCtx.fillRect(p.x, p.y, Math.max(1,p.size), Math.max(1,p.size*0.6));
-      if(p.life<=0 || p.size<0.5) confettiPieces.splice(i,1);
-    }
-    requestAnimationFrame(confettiLoop);
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 1.0;
+  window.speechSynthesis.speak(u);
+}
+
+// --- GAME LOGIC ---
+function startGame() {
+  const nameIn = document.getElementById('kidName').value;
+  if(nameIn.trim()) currentPlayer = nameIn.trim();
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('displayName').innerText = currentPlayer;
+  nextLevel();
+}
+
+function goHome() {
+  document.getElementById('welcomeScreen').style.display = 'flex';
+  clearTimeout(autoNextTimer);
+}
+
+function skipLevel() {
+  playSound('pop');
+  nextLevel();
+}
+
+function nextLevel() {
+  clearTimeout(autoNextTimer);
+  const board = document.getElementById('gameBoard');
+  board.style.opacity = '0';
+
+  setTimeout(() => {
+    // Logic: Pick 2 random
+    itemsToMatch = 2;
+    currentItems = DATABASE.sort(() => 0.5 - Math.random()).slice(0, 2);
+    renderBoard();
+    board.style.opacity = '1';
+    speak(`Find the ${currentItems[0].name} and the ${currentItems[1].name}`);
+  }, 300);
+}
+
+function renderBoard() {
+  const tArea = document.getElementById('targets');
+  const dArea = document.getElementById('draggables');
+  tArea.innerHTML = ''; dArea.innerHTML = '';
+
+  // Targets
+  currentItems.forEach(item => {
+    const t = document.createElement('div');
+    t.className = 'target-box';
+    t.id = `target-${item.id}`;
+    // Emoji Fallback logic inside onerror
+    t.innerHTML = `<img src="${item.img}" onerror="this.style.display='none'; this.parentElement.innerText='${item.emoji}'; this.parentElement.style.fontSize='4rem';">`;
+    tArea.appendChild(t);
+  });
+
+  // Draggables
+  [...currentItems].sort(()=>0.5-Math.random()).forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'drag-item';
+    d.dataset.id = item.id;
+    d.dataset.name = item.name;
+    // Emoji Fallback logic
+    d.innerHTML = `<img src="${item.img}" onerror="this.style.display='none'; this.parentElement.innerText='${item.emoji}';">`;
+    makeDraggable(d);
+    dArea.appendChild(d);
+  });
+}
+
+function repeatNames() {
+  speak(`${currentItems[0].name} ... and ... ${currentItems[1].name}`);
+}
+
+// --- DRAG LOGIC ---
+function makeDraggable(el) {
+  let startX, startY;
+  
+  function onDown(e) {
+    if(el.classList.contains('locked')) return;
+    e.preventDefault();
+    playSound('pop');
+    speak(el.dataset.name);
+    el.setPointerCapture(e.pointerId);
+    
+    const rect = el.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    
+    el.style.position = 'fixed';
+    el.style.left = rect.left + 'px'; el.style.top = rect.top + 'px';
+    el.style.zIndex = 1000;
   }
-  confettiLoop();
 
-  // --- audio / speech helpers
-  function ensureAudio(){ if(!audioCtx){ try{ const AC = window.AudioContext || window.webkitAudioContext; audioCtx = new AC(); }catch(e){ audioCtx = null; } } return audioCtx; }
-  async function resumeAudio(){ if(audioCtx && audioCtx.state==='suspended'){ try{ await audioCtx.resume(); }catch(e){} } }
-  function playSuccessTone(){ const ctx = ensureAudio(); if(!ctx) return; if(ctx.state==='suspended') ctx.resume().catch(()=>{}); const o = ctx.createOscillator(); const g = ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(520, ctx.currentTime); g.gain.setValueAtTime(0.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6); o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.62); }
-  function speak(text){ if(!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.95; u.pitch = 1.05; window.speechSynthesis.speak(u); }
-  function vibrate(){ if(navigator.vibrate) navigator.vibrate(40); }
-
-  // --- UI builders
-  function buildTargets(pairs){
-    targetsEl.innerHTML = '';
-    pairs.forEach(pair => {
-      const t = document.createElement('div');
-      t.className = 'target';
-      t.dataset.targetFor = pair.id;
-      t.id = 'target-' + pair.id;
-      t.innerHTML = `<div aria-hidden="true" style="font-size:1.4rem;opacity:.2">${pair.emoji}</div><div class="label">${pair.label}</div>`;
-      targetsEl.appendChild(t);
-    });
+  function onMove(e) {
+    if(el.style.position !== 'fixed') return;
+    e.preventDefault();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    el.style.transform = `translate(${dx}px, ${dy - 60}px) scale(1.15)`;
   }
 
-  function buildDraggables(pairs){
-    draggablesEl.innerHTML = '';
-    // shuffle
-    const copy = pairs.slice().sort(()=> Math.random() - 0.5);
-    copy.forEach(pair => {
-      const d = document.createElement('div');
-      d.className = 'drag';
-      d.id = 'drag-' + pair.id;
-      d.dataset.id = pair.id;
-      d.innerHTML = `<span aria-hidden="true">${pair.emoji}</span>`;
-      draggablesEl.appendChild(d);
-      attachPointerHandlers(d);
-    });
-  }
+  function onUp(e) {
+    if(el.style.position !== 'fixed') return;
+    el.releasePointerCapture(e.pointerId);
+    
+    // Check targets
+    let droppedCorrect = false;
+    let droppedWrong = false;
+    
+    // Find what we are hovering over
+    // We temporarily hide the drag item to see what is underneath
+    el.hidden = true; 
+    const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+    el.hidden = false;
 
-  // --- pointer drag logic
-  function attachPointerHandlers(el){
-    let isDragging = false;
-    let startX=0, startY=0, offsetX=0, offsetY=0;
-    let originalRect = null;
-
-    function onPointerDown(ev){
-      ev.preventDefault();
-      el.style.zIndex = 1000;
-      el.setPointerCapture?.(ev.pointerId);
-      isDragging = true;
-      startX = ev.clientX; startY = ev.clientY;
-      const rect = el.getBoundingClientRect();
-      originalRect = rect;
-      offsetX = ev.clientX - rect.left;
-      offsetY = ev.clientY - rect.top;
-      el.style.position = 'fixed';
-      el.style.left = rect.left + 'px';
-      el.style.top  = rect.top + 'px';
-      el.style.width = rect.width + 'px';
-      el.style.height = rect.height + 'px';
-      el.style.transition = 'transform 0.08s';
-      el.style.touchAction = 'none';
-    }
-
-    function onPointerMove(ev){
-      if(!isDragging) return;
-      ev.preventDefault();
-      const x = ev.clientX - offsetX;
-      const y = ev.clientY - offsetY;
-      el.style.left = x + 'px';
-      el.style.top = y + 'px';
-    }
-
-    function onPointerUp(ev){
-      if(!isDragging) return;
-      ev.preventDefault();
-      isDragging = false;
-      el.releasePointerCapture?.(ev.pointerId);
-      const drop = findClosestTarget(ev.clientX, ev.clientY);
-      if(drop && drop.dataset.targetFor === el.dataset.id){
-        snapToTarget(el, drop);
-        onCorrectMatch(el.dataset.id, drop);
-      } else {
-        animateReturn(el, originalRect);
+    if(elemBelow) {
+      const target = elemBelow.closest('.target-box');
+      if(target) {
+        if(target.id === `target-${el.dataset.id}`) {
+          droppedCorrect = true;
+          handleMatch(el, target);
+        } else {
+          droppedWrong = true;
+        }
       }
     }
 
-    el.addEventListener('pointerdown', onPointerDown, {passive:false});
-    window.addEventListener('pointermove', onPointerMove, {passive:false});
-    window.addEventListener('pointerup', onPointerUp, {passive:false});
-  }
-
-  function findClosestTarget(x,y, radius=90){
-    const targets = Array.from(document.querySelectorAll('.target'));
-    let nearest = null; let minDist = Infinity;
-    targets.forEach(t => {
-      const r = t.getBoundingClientRect();
-      const cx = r.left + r.width/2; const cy = r.top + r.height/2;
-      const d = Math.hypot(cx - x, cy - y);
-      if(d < minDist && d <= radius){ minDist = d; nearest = t; }
-    });
-    return nearest;
-  }
-
-  function animateReturn(el, rect){
-    el.style.transition = 'left .28s ease, top .28s ease, transform .16s';
-    el.style.left = rect.left + 'px';
-    el.style.top = rect.top + 'px';
-    setTimeout(()=> {
-      el.style.position = '';
-      el.style.left = ''; el.style.top = ''; el.style.width=''; el.style.height=''; el.style.zIndex=''; el.style.transition='';
-    }, 300);
-  }
-
-  function snapToTarget(el, target){
-    const rTarget = target.getBoundingClientRect();
-    el.style.left = (rTarget.left + (rTarget.width - el.offsetWidth)/2) + 'px';
-    el.style.top  = (rTarget.top  + (rTarget.height - el.offsetHeight)/2) + 'px';
-    el.style.transition = 'left .22s ease, top .22s ease, transform .14s';
-    setTimeout(()=> {
-      el.classList.add('locked');
-      el.style.position = 'absolute';
-      target.appendChild(el);
-      el.style.left=''; el.style.top=''; el.style.width=''; el.style.height=''; el.style.position=''; el.style.zIndex=''; el.style.transition='';
-    }, 260);
-  }
-
-  function onCorrectMatch(id, target){
-    placed[id] = target.id;
-    lastPlaced = { id, targetId: target.id };
-    updateScore();
-    const rect = target.getBoundingClientRect();
-    spawnConfetti(rect.left + rect.width/2, rect.top + rect.height/2);
-    playSuccessTone();
-    speak('Well done!');
-    vibrate();
-    showToast('Nice!');
-    // check completion
-    if(Object.keys(placed).length === currentPairs.length){
-      // level complete
-      setTimeout(()=> levelComplete(), 700);
-    }
-  }
-
-  // --- level flow
-  function levelComplete(){
-    showToast('Level complete!');
-    // big celebration
-    spawnConfetti(window.innerWidth/2, window.innerHeight/3);
-    playSuccessTone();
-    speak('Great job! Moving to next puzzle.');
-    // auto-advance after short delay
-    setTimeout(()=> {
-      levelIndex++;
-      if(levelIndex >= LEVELS.length){
-        // finished all levels: congrats and restart from first
-        showCongratsAndRestart();
-      } else {
-        loadLevel(levelIndex);
+    if(!droppedCorrect) {
+      // Return Animation
+      el.style.transition = '0.3s';
+      el.style.transform = 'translate(0,0)';
+      
+      if(droppedWrong) {
+        // ERROR SHAKE
+        playSound('error');
+        el.classList.add('shake-it');
+        speak("Uh oh!");
+        setTimeout(()=> el.classList.remove('shake-it'), 500);
       }
-    }, 1400);
-  }
-
-  function showCongratsAndRestart(){
-    showToast('You finished all puzzles! Restarting...');
-    speak('You finished all puzzles! Restarting from the first one.');
-    setTimeout(()=> {
-      levelIndex = 0;
-      loadLevel(levelIndex);
-    }, 1600);
-  }
-
-  // --- score & UI
-  function updateScore(){
-    const total = currentPairs.length;
-    const done = Object.keys(placed).length;
-    scoreEl.textContent = `${done} / ${total}`;
-    progressHint.textContent = `Match ${total} items`;
-    levelNumEl.textContent = String(levelIndex + 1);
-    levelsTotalEl.textContent = String(LEVELS.length);
-  }
-
-  function showToast(text='Nice!'){
-    toast.textContent = text; toast.style.display = 'block';
-    setTimeout(()=> toast.style.display = 'none', 900);
-  }
-
-  // --- undo & reset & next
-  undoBtn.addEventListener('click', ()=>{
-    if(!lastPlaced) return;
-    const id = lastPlaced.id;
-    const el = document.getElementById('drag-' + id);
-    if(el){
-      // unlocked and moved back to draggables
-      delete placed[id];
-      updateScore();
-      el.classList.remove('locked');
-      el.style.position = ''; el.style.left=''; el.style.top=''; el.style.width=''; el.style.height='';
-      draggablesEl.appendChild(el);
-      lastPlaced = null;
+      
+      setTimeout(() => {
+        el.style.position = ''; el.style.left = ''; el.style.top = ''; el.style.zIndex = ''; el.style.transition = '';
+      }, 300);
     }
-  });
-
-  resetBtn.addEventListener('click', ()=>{
-    // reset current level (keep same levelIndex)
-    loadLevel(levelIndex);
-  });
-
-  nextBtn.addEventListener('click', ()=>{
-    // skip to next level (wrap)
-    levelIndex = (levelIndex + 1) % LEVELS.length;
-    loadLevel(levelIndex);
-  });
-
-  // --- build & load level
-  function loadLevel(idx){
-    placed = {}; lastPlaced = null;
-    currentPairs = LEVELS[idx].slice();
-    buildTargets(currentPairs);
-    buildDraggables(currentPairs);
-    updateScore();
-    // voice hint
-    speak(`Puzzle ${idx+1}. Match the items.`);
   }
 
-  // --- init build functions (use earlier versions but ensure fresh attach)
-  function buildTargets(pairs){
-    targetsEl.innerHTML = '';
-    pairs.forEach(pair => {
-      const t = document.createElement('div');
-      t.className = 'target';
-      t.dataset.targetFor = pair.id;
-      t.id = 'target-' + pair.id;
-      t.innerHTML = `<div aria-hidden="true" style="font-size:1.4rem;opacity:.2">${pair.emoji}</div><div class="label">${pair.label}</div>`;
-      targetsEl.appendChild(t);
+  el.addEventListener('pointerdown', onDown);
+  el.addEventListener('pointermove', onMove);
+  el.addEventListener('pointerup', onUp);
+}
+
+function handleMatch(dragEl, targetEl) {
+  dragEl.remove();
+  targetEl.classList.add('success');
+  playSound('success');
+  
+  const r = targetEl.getBoundingClientRect();
+  spawnConfetti(r.left+r.width/2, r.top+r.height/2);
+  
+  itemsToMatch--;
+  currentScore++;
+  document.getElementById('scoreVal').innerText = currentScore;
+
+  if(itemsToMatch === 0) {
+    setTimeout(() => {
+      speak(`Good Job ${currentPlayer}!`);
+      spawnConfetti(window.innerWidth/2, window.innerHeight/2, 50);
+      autoNextTimer = setTimeout(nextLevel, 2500);
+    }, 500);
+  }
+}
+
+// --- CONFETTI ---
+const canvas = document.getElementById('confetti');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.onresize = resize; resize();
+
+function spawnConfetti(x, y, count=25) {
+  for(let i=0; i<count; i++) {
+    particles.push({
+      x: x, y: y,
+      vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15 - 5,
+      life: Math.random()*50 + 30,
+      color: `hsl(${Math.random()*360}, 100%, 60%)`,
+      size: Math.random()*8 + 4
     });
   }
-
-  function buildDraggables(pairs){
-    draggablesEl.innerHTML = '';
-    const copy = pairs.slice().sort(()=> Math.random() - 0.5);
-    copy.forEach(pair => {
-      const d = document.createElement('div');
-      d.className = 'drag';
-      d.id = 'drag-' + pair.id;
-      d.dataset.id = pair.id;
-      d.innerHTML = `<span aria-hidden="true">${pair.emoji}</span>`;
-      draggablesEl.appendChild(d);
-      attachPointerHandlers(d);
-    });
+}
+function loop() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let i=particles.length-1; i>=0; i--) {
+    let p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.life--;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+    if(p.life<=0) particles.splice(i,1);
   }
-
-  // --- pointer attach (duplicated for closure)
-  function attachPointerHandlers(el){
-    let isDragging = false;
-    let startX=0, startY=0, offsetX=0, offsetY=0;
-    let originalRect = null;
-
-    function onPointerDown(ev){
-      ev.preventDefault();
-      el.style.zIndex = 1000;
-      el.setPointerCapture?.(ev.pointerId);
-      isDragging = true;
-      startX = ev.clientX; startY = ev.clientY;
-      const rect = el.getBoundingClientRect();
-      originalRect = rect;
-      offsetX = ev.clientX - rect.left;
-      offsetY = ev.clientY - rect.top;
-      el.style.position = 'fixed';
-      el.style.left = rect.left + 'px';
-      el.style.top  = rect.top + 'px';
-      el.style.width = rect.width + 'px';
-      el.style.height = rect.height + 'px';
-      el.style.transition = 'transform 0.08s';
-      el.style.touchAction = 'none';
-    }
-
-    function onPointerMove(ev){
-      if(!isDragging) return;
-      ev.preventDefault();
-      const x = ev.clientX - offsetX;
-      const y = ev.clientY - offsetY;
-      el.style.left = x + 'px';
-      el.style.top = y + 'px';
-    }
-
-    function onPointerUp(ev){
-      if(!isDragging) return;
-      ev.preventDefault();
-      isDragging = false;
-      el.releasePointerCapture?.(ev.pointerId);
-      const drop = findClosestTarget(ev.clientX, ev.clientY);
-      if(drop && drop.dataset.targetFor === el.dataset.id){
-        snapToTarget(el, drop);
-        onCorrectMatch(el.dataset.id, drop);
-      } else {
-        animateReturn(el, originalRect);
-      }
-    }
-
-    el.addEventListener('pointerdown', onPointerDown, {passive:false});
-    window.addEventListener('pointermove', onPointerMove, {passive:false});
-    window.addEventListener('pointerup', onPointerUp, {passive:false});
-  }
-
-  function findClosestTarget(x,y, radius=90){
-    const targets = Array.from(document.querySelectorAll('.target'));
-    let nearest = null; let minDist = Infinity;
-    targets.forEach(t => {
-      const r = t.getBoundingClientRect();
-      const cx = r.left + r.width/2; const cy = r.top + r.height/2;
-      const d = Math.hypot(cx - x, cy - y);
-      if(d < minDist && d <= radius){ minDist = d; nearest = t; }
-    });
-    return nearest;
-  }
-
-  function animateReturn(el, rect){
-    el.style.transition = 'left .28s ease, top .28s ease, transform .16s';
-    el.style.left = rect.left + 'px';
-    el.style.top = rect.top + 'px';
-    setTimeout(()=> {
-      el.style.position = '';
-      el.style.left = ''; el.style.top = ''; el.style.width=''; el.style.height=''; el.style.zIndex=''; el.style.transition='';
-    }, 300);
-  }
-
-  function snapToTarget(el, target){
-    const rTarget = target.getBoundingClientRect();
-    el.style.left = (rTarget.left + (rTarget.width - el.offsetWidth)/2) + 'px';
-    el.style.top  = (rTarget.top  + (rTarget.height - el.offsetHeight)/2) + 'px';
-    el.style.transition = 'left .22s ease, top .22s ease, transform .14s';
-    setTimeout(()=> {
-      el.classList.add('locked');
-      el.style.position = 'absolute';
-      target.appendChild(el);
-      el.style.left=''; el.style.top=''; el.style.width=''; el.style.height=''; el.style.position=''; el.style.zIndex=''; el.style.transition='';
-    }, 260);
-  }
-
-  // --- level start
-  function init(){
-    levelIndex = 0;
-    levelsTotalEl.textContent = String(LEVELS.length);
-    loadLevel(levelIndex);
-    // ensure audio created after first gesture
-    window.addEventListener('pointerdown', function initAudio(){ ensureAudio(); window.removeEventListener('pointerdown', initAudio); }, {passive:true});
-  }
-
-  // expose helpers used earlier
-  function updateScore(){ const total = currentPairs.length; const done = Object.keys(placed).length; scoreEl.textContent = `${done} / ${total}`; progressHint.textContent = `Match ${total} items`; levelNumEl.textContent = String(levelIndex + 1); }
-
-  // kick off
-  init();
-
-  // --- small helper: spawnConfetti alias ---
-  function spawnConfetti(x,y){
-    for(let i=0;i<28;i++){
-      confettiPieces.push({
-        x: Math.max(0, Math.min(window.innerWidth, x||window.innerWidth/2)) + (Math.random()*80-40),
-        y: Math.max(0, Math.min(window.innerHeight, y||window.innerHeight/3)) + (Math.random()*60-30),
-        vx: (Math.random()*6-3),
-        vy: (Math.random()*-6-2),
-        size: Math.random()*8+4,
-        life: Math.random()*40+40,
-        color: ['#ff6b6b','#ffd93d','#6bcBff','#9b59b6','#7ed321'][Math.floor(Math.random()*5)]
-      });
-    }
-  }
-
-  // kick confetti loop already started above
-
-})();
+  requestAnimationFrame(loop);
+}
+loop();
 </script>
 </body>
 </html>
-
