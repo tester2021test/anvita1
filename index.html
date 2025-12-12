@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Fun Match Fixed</title>
+<title>Match & Learn</title>
 <style>
   /* --- RESET & LAYOUT --- */
   body {
     margin: 0;
     padding: 0;
     width: 100%;
-    height: 100vh; /* Full viewport height */
+    height: 100vh;
     overflow: hidden;
-    background: linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 100%);
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
     font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
-    touch-action: none; /* Prevents scrolling */
+    touch-action: none;
     display: flex;
     flex-direction: column;
     user-select: none;
@@ -30,36 +30,42 @@
     padding: 0 20px;
   }
   
-  h1 { font-size: 1.2rem; color: #555; margin: 0; }
+  h1 { font-size: 1.2rem; color: #444; margin: 0; text-shadow: 1px 1px 0 #fff; }
   .score-board { 
     background: white; padding: 5px 15px; 
     border-radius: 15px; font-weight: bold; color: #333; 
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
 
-  /* --- GAME AREA (Takes remaining space) --- */
+  /* --- GAME AREA --- */
   .game-area {
     height: 90%;
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly; /* Spreads Top and Bottom rows apart */
+    justify-content: space-evenly;
     align-items: center;
     padding-bottom: 20px;
   }
 
-  /* --- ROWS --- */
   .row {
     display: flex;
     justify-content: center;
-    gap: 15px; /* Space between items */
+    gap: 15px;
     width: 100%;
   }
 
   /* --- TARGETS (Top Boxes) --- */
+  .target-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+
   .target {
-    width: 28vw; height: 28vw; /* Responsive squares */
+    width: 28vw; height: 28vw;
     max-width: 110px; max-height: 110px;
-    border: 3px dashed #888;
+    border: 3px dashed #777;
     border-radius: 15px;
     background-color: rgba(255,255,255,0.4);
     display: flex;
@@ -69,26 +75,40 @@
     opacity: 0.5;
     transition: transform 0.2s;
   }
+  
   .target.highlight { background: #fff; transform: scale(1.1); border-color: #333; }
+  
   .target.matched { 
     border: 3px solid #4CAF50; background: white; opacity: 1; 
     transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.2);
   }
 
+  /* Label that appears on match */
+  .name-label {
+    margin-top: 5px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #333;
+    opacity: 0;
+    transition: opacity 0.3s;
+    background: rgba(255,255,255,0.8);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .name-label.show { opacity: 1; }
+
   /* --- SLOTS & ITEMS (Bottom Circles) --- */
-  /* The Slot is the "Home" for the item */
   .slot {
     width: 26vw; height: 26vw;
     max-width: 100px; max-height: 100px;
-    background: rgba(0,0,0,0.1); /* Dark circle placeholder */
+    background: rgba(0,0,0,0.1);
     border-radius: 50%;
-    position: relative; /* CRITICAL: Item sits inside this relative to it */
+    position: relative; 
   }
 
-  /* The Item sits INSIDE the slot by default */
   .item {
-    width: 100%; height: 100%; /* Fill the slot completely */
-    position: absolute; /* Lock to the slot */
+    width: 100%; height: 100%;
+    position: absolute; 
     top: 0; left: 0;
     background: white;
     border-radius: 50%;
@@ -101,11 +121,10 @@
     z-index: 10;
   }
 
-  /* When we drag, we switch to this class */
   .item.dragging {
-    position: fixed; /* Break out of the slot */
+    position: fixed; 
     z-index: 1000;
-    pointer-events: none; /* Helps touch events pass through to check collision */
+    pointer-events: none; 
     box-shadow: 0 15px 30px rgba(0,0,0,0.3);
     transform: scale(1.2);
   }
@@ -118,6 +137,7 @@
     border-radius: 20px; font-size: 2rem;
     box-shadow: 0 0 50px rgba(0,0,0,0.2);
     z-index: 2000; transition: transform 0.3s;
+    text-align: center;
   }
   #level-msg.show { transform: translate(-50%, -50%) scale(1); }
   
@@ -127,7 +147,7 @@
 <body>
 
   <header>
-    <h1>Match 3!</h1>
+    <h1>Match & Learn</h1>
     <div class="score-board">Score: <span id="score">0</span></div>
   </header>
 
@@ -137,31 +157,65 @@
     <div class="row" id="slots-container"></div>
   </div>
 
-  <div id="level-msg">Great Job! 🎉</div>
+  <div id="level-msg">Good Job! 🎉</div>
   <canvas id="confetti"></canvas>
 
 <script>
-// --- DATA (Over 100 items mixed) ---
+/* --------------------------------------------------
+   1. DATA WITH NAMES (n = Name)
+   -------------------------------------------------- */
 const DATA = [
-  {id:'lion',i:'🦁'},{id:'dog',i:'🐶'},{id:'cat',i:'🐱'},{id:'bear',i:'🐻'},{id:'panda',i:'🐼'},
-  {id:'pig',i:'🐷'},{id:'frog',i:'🐸'},{id:'octo',i:'🐙'},{id:'turtle',i:'🐢'},{id:'bee',i:'🐝'},
-  {id:'apple',i:'🍎'},{id:'banana',i:'🍌'},{id:'grapes',i:'🍇'},{id:'pizza',i:'🍕'},{id:'burger',i:'🍔'},
-  {id:'car',i:'🚗'},{id:'bus',i:'🚌'},{id:'rocket',i:'🚀'},{id:'ship',i:'🚢'},{id:'train',i:'🚂'},
-  {id:'sun',i:'☀️'},{id:'moon',i:'🌙'},{id:'star',i:'⭐'},{id:'ball',i:'⚽'},{id:'flower',i:'🌻'},
-  {id:'fox',i:'🦊'},{id:'mouse',i:'🐭'},{id:'bunny',i:'🐰'},{id:'koala',i:'🐨'},{id:'tiger',i:'🐯'},
-  {id:'cow',i:'🐮'},{id:'chick',i:'🐤'},{id:'whale',i:'🐳'},{id:'fish',i:'🐠'},{id:'crab',i:'🦀'},
-  {id:'corn',i:'🌽'},{id:'carrot',i:'🥕'},{id:'fries',i:'🍟'},{id:'egg',i:'🥚'},{id:'cookie',i:'🍪'},
-  {id:'choco',i:'🍫'},{id:'candy',i:'🍬'},{id:'cake',i:'🍰'},{id:'donut',i:'🍩'},{id:'ice',i:'🍦'},
-  {id:'police',i:'🚓'},{id:'fire',i:'🚒'},{id:'taxi',i:'🚕'},{id:'bike',i:'🚲'},{id:'plane',i:'✈️'},
-  {id:'tree',i:'🌲'},{id:'leaf',i:'🍁'},{id:'rose',i:'🌹'},{id:'cactus',i:'🌵'},{id:'palm',i:'🌴'},
-  {id:'gift',i:'🎁'},{id:'bell',i:'🔔'},{id:'music',i:'🎵'},{id:'heart',i:'❤️'},{id:'gem',i:'💎'},
-  {id:'book',i:'🧱'},{id:'bulb',i:'💡'},{id:'phone',i:'📱'},{id:'tv',i:'📺'},{id:'key',i:'🔑'}
+  {id:'lion', i:'🦁', n:'Lion'}, {id:'dog', i:'🐶', n:'Dog'}, 
+  {id:'cat', i:'🐱', n:'Cat'}, {id:'bear', i:'🐻', n:'Bear'}, 
+  {id:'panda', i:'🐼', n:'Panda'}, {id:'pig', i:'🐷', n:'Pig'}, 
+  {id:'frog', i:'🐸', n:'Frog'}, {id:'octopus', i:'🐙', n:'Octopus'}, 
+  {id:'turtle', i:'🐢', n:'Turtle'}, {id:'bee', i:'🐝', n:'Bee'},
+  {id:'apple', i:'🍎', n:'Apple'}, {id:'banana', i:'🍌', n:'Banana'}, 
+  {id:'grapes', i:'🍇', n:'Grapes'}, {id:'pizza', i:'🍕', n:'Pizza'}, 
+  {id:'burger', i:'🍔', n:'Burger'}, {id:'car', i:'🚗', n:'Car'}, 
+  {id:'bus', i:'🚌', n:'Bus'}, {id:'rocket', i:'🚀', n:'Rocket'}, 
+  {id:'ship', i:'🚢', n:'Ship'}, {id:'train', i:'🚂', n:'Train'},
+  {id:'sun', i:'☀️', n:'Sun'}, {id:'moon', i:'🌙', n:'Moon'}, 
+  {id:'star', i:'⭐', n:'Star'}, {id:'ball', i:'⚽', n:'Soccer Ball'}, 
+  {id:'flower', i:'🌻', n:'Flower'}, {id:'fox', i:'🦊', n:'Fox'}, 
+  {id:'mouse', i:'🐭', n:'Mouse'}, {id:'bunny', i:'🐰', n:'Bunny'}, 
+  {id:'koala', i:'🐨', n:'Koala'}, {id:'tiger', i:'🐯', n:'Tiger'},
+  {id:'cow', i:'🐮', n:'Cow'}, {id:'chick', i:'🐤', n:'Chick'}, 
+  {id:'whale', i:'🐳', n:'Whale'}, {id:'fish', i:'🐠', n:'Fish'}, 
+  {id:'crab', i:'🦀', n:'Crab'}, {id:'corn', i:'🌽', n:'Corn'}, 
+  {id:'carrot', i:'🥕', n:'Carrot'}, {id:'fries', i:'🍟', n:'French Fries'}, 
+  {id:'egg', i:'🥚', n:'Egg'}, {id:'cookie', i:'🍪', n:'Cookie'},
+  {id:'choco', i:'🍫', n:'Chocolate'}, {id:'candy', i:'🍬', n:'Candy'}, 
+  {id:'cake', i:'🍰', n:'Cake'}, {id:'donut', i:'🍩', n:'Donut'}, 
+  {id:'ice', i:'🍦', n:'Ice Cream'}, {id:'police', i:'🚓', n:'Police Car'}, 
+  {id:'fire', i:'🚒', n:'Fire Truck'}, {id:'taxi', i:'🚕', n:'Taxi'}, 
+  {id:'bike', i:'🚲', n:'Bicycle'}, {id:'plane', i:'✈️', n:'Airplane'},
+  {id:'tree', i:'🌲', n:'Tree'}, {id:'leaf', i:'🍁', n:'Leaf'}, 
+  {id:'rose', i:'🌹', n:'Rose'}, {id:'cactus', i:'🌵', n:'Cactus'}, 
+  {id:'palm', i:'🌴', n:'Palm Tree'}, {id:'gift', i:'🎁', n:'Gift'}, 
+  {id:'bell', i:'🔔', n:'Bell'}, {id:'music', i:'🎵', n:'Music'}, 
+  {id:'heart', i:'❤️', n:'Heart'}, {id:'gem', i:'💎', n:'Diamond'},
+  {id:'book', i:'📚', n:'Book'}, {id:'bulb', i:'💡', n:'Light Bulb'}, 
+  {id:'phone', i:'📱', n:'Phone'}, {id:'tv', i:'📺', n:'TV'}
 ];
 
 // --- STATE ---
 let score = 0;
 let matchesLeft = 0;
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const synth = window.speechSynthesis; // Speech Engine
+
+// --- SPEECH HELPER ---
+function speak(text, rate = 1) {
+  // Cancel any current speech so it doesn't lag
+  if(synth.speaking) synth.cancel();
+  
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = rate; // Speed: 1 is normal
+  utterance.pitch = 1.1; // Slightly higher pitch sounds friendlier
+  utterance.lang = 'en-US';
+  synth.speak(utterance);
+}
 
 // --- INIT LEVEL ---
 function initLevel() {
@@ -180,29 +234,39 @@ function initLevel() {
 
   // 1. Create Targets
   levelItems.forEach(item => {
+    // Wrapper for Target + Name Label
+    const container = document.createElement('div');
+    container.className = 'target-container';
+
     const t = document.createElement('div');
     t.className = 'target';
     t.id = `target-${item.id}`;
-    t.innerText = item.i;
-    targetsDiv.appendChild(t);
+    t.innerText = item.i; // Ghost Emoji
+    
+    const label = document.createElement('div');
+    label.className = 'name-label';
+    label.id = `label-${item.id}`;
+    label.innerText = item.n; // Text Name
+
+    container.appendChild(t);
+    container.appendChild(label);
+    targetsDiv.appendChild(container);
   });
 
   // 2. Create Slots & Items (Shuffled)
   const dragItems = [...levelItems].sort(() => 0.5 - Math.random());
   
   dragItems.forEach(item => {
-    // Create the container slot
     const slot = document.createElement('div');
     slot.className = 'slot';
     
-    // Create the item INSIDE the slot
     const drag = document.createElement('div');
     drag.className = 'item';
     drag.id = `drag-${item.id}`;
     drag.dataset.id = item.id;
+    drag.dataset.name = item.n; // Store name for speech
     drag.innerText = item.i;
 
-    // Attach Logic
     enableTouchLogic(drag, slot);
 
     slot.appendChild(drag);
@@ -210,33 +274,26 @@ function initLevel() {
   });
 }
 
-// --- TOUCH LOGIC (The Fixed Version) ---
+// --- TOUCH LOGIC ---
 function enableTouchLogic(el, homeSlot) {
   
   function onStart(e) {
-    e.preventDefault(); // Stop scrolling
+    e.preventDefault(); 
     if(audioCtx.state === 'suspended') audioCtx.resume();
 
+    // SPEECH: Say the name simply on touch
+    speak(el.dataset.name);
+
     const touch = e.touches ? e.touches[0] : e;
-    
-    // 1. Calculate current size/position
     const rect = el.getBoundingClientRect();
     
-    // 2. Freeze dimensions (so it doesn't shrink when moved to body)
     el.style.width = rect.width + 'px';
     el.style.height = rect.height + 'px';
-    
-    // 3. Set position to fixed at current location
     el.style.left = rect.left + 'px';
     el.style.top = rect.top + 'px';
-    
-    // 4. Add 'dragging' class (changes to position: fixed)
     el.classList.add('dragging');
-    
-    // 5. Move to body so it floats over everything
     document.body.appendChild(el);
     
-    // 6. Correction offset (center under finger)
     el.dataset.offsetX = touch.clientX - rect.left;
     el.dataset.offsetY = touch.clientY - rect.top;
   }
@@ -244,18 +301,14 @@ function enableTouchLogic(el, homeSlot) {
   function onMove(e) {
     if(!el.classList.contains('dragging')) return;
     e.preventDefault();
-    
     const touch = e.touches ? e.touches[0] : e;
     
-    // Move element
-    // We lift it slightly (-50px) so the user can see what they are dragging
     const x = touch.clientX - (parseFloat(el.style.width)/2);
     const y = touch.clientY - (parseFloat(el.style.height)/2) - 50;
     
     el.style.left = x + 'px';
     el.style.top = y + 'px';
 
-    // Highlight Check
     const target = document.getElementById(`target-${el.dataset.id}`);
     if(target && isColliding(el, target)) {
       target.classList.add('highlight');
@@ -274,26 +327,29 @@ function enableTouchLogic(el, homeSlot) {
       // SUCCESS
       target.classList.remove('highlight');
       target.classList.add('matched');
+      
+      // SHOW LABEL
+      const label = document.getElementById(`label-${el.dataset.id}`);
+      if(label) label.classList.add('show');
+
+      // SPEECH: Say "This is a [Name]"
+      speak("This is a " + el.dataset.name, 0.9);
+
       playPop();
       spawnConfetti(target.getBoundingClientRect());
-      el.remove(); // Remove draggable
+      el.remove(); 
       
       matchesLeft--;
       if(matchesLeft === 0) levelComplete();
     } else {
-      // FAIL - Return to home
+      // FAIL
       document.querySelectorAll('.target').forEach(t => t.classList.remove('highlight'));
-      
-      // Get home slot position again (in case screen resized)
       const homeRect = homeSlot.getBoundingClientRect();
-      
-      // Animate back
       el.style.transition = 'all 0.3s ease';
       el.style.left = homeRect.left + 'px';
       el.style.top = homeRect.top + 'px';
-      el.style.transform = 'scale(1)'; // Remove pop effect
+      el.style.transform = 'scale(1)'; 
 
-      // After animation, put it back in the box structure
       setTimeout(() => {
         el.classList.remove('dragging');
         el.style.transition = '';
@@ -301,31 +357,25 @@ function enableTouchLogic(el, homeSlot) {
         el.style.height = '100%';
         el.style.left = '0';
         el.style.top = '0';
-        el.style.position = 'absolute'; // Reset to CSS default
+        el.style.position = 'absolute'; 
         homeSlot.appendChild(el);
       }, 300);
     }
   }
 
-  // Listeners
   el.addEventListener('touchstart', onStart, {passive:false});
   el.addEventListener('touchmove', onMove, {passive:false});
   el.addEventListener('touchend', onEnd);
-  
   el.addEventListener('mousedown', onStart);
-  window.addEventListener('mousemove', onMove); // Window listener prevents losing drag
+  window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onEnd);
 }
 
-// --- UTILS ---
 function isColliding(el1, el2) {
   const r1 = el1.getBoundingClientRect();
   const r2 = el2.getBoundingClientRect();
-  const dist = Math.hypot(
-    (r1.left + r1.width/2) - (r2.left + r2.width/2),
-    (r1.top + r1.height/2) - (r2.top + r2.height/2)
-  );
-  return dist < 60; // Sensitivity
+  const dist = Math.hypot((r1.left+r1.width/2)-(r2.left+r2.width/2), (r1.top+r1.height/2)-(r2.top+r2.height/2));
+  return dist < 60; 
 }
 
 function levelComplete() {
@@ -334,17 +384,16 @@ function levelComplete() {
   document.getElementById('level-msg').classList.add('show');
   playWin();
   spawnConfetti({left: window.innerWidth/2, top: window.innerHeight/2, width:0, height:0}, 100);
-  setTimeout(initLevel, 2000);
+  setTimeout(initLevel, 2500); // Wait a bit longer to hear speech
 }
 
-// --- FX ---
+// --- SOUND FX ---
 function playPop() {
-  const o = audioCtx.createOscillator(); 
-  const g = audioCtx.createGain();
+  const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
   o.connect(g); g.connect(audioCtx.destination);
   o.frequency.value = 600; 
   o.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-  g.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+  g.gain.setValueAtTime(0.05, audioCtx.currentTime); 
   g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
   o.start(); o.stop(audioCtx.currentTime + 0.1);
 }
@@ -352,11 +401,10 @@ function playPop() {
 function playWin() {
   [400, 500, 600].forEach((f, i) => {
     setTimeout(() => {
-      const o = audioCtx.createOscillator(); 
-      const g = audioCtx.createGain();
+      const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
       o.connect(g); g.connect(audioCtx.destination);
       o.frequency.value = f; 
-      g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      g.gain.setValueAtTime(0.05, audioCtx.currentTime);
       g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
       o.start(); o.stop(audioCtx.currentTime + 0.3);
     }, i*100);
@@ -368,19 +416,12 @@ const cvs = document.getElementById('confetti');
 const ctx = cvs.getContext('2d');
 cvs.width = window.innerWidth; cvs.height = window.innerHeight;
 let parts = [];
-
 function spawnConfetti(rect, count=20) {
-  const cx = rect.left + rect.width/2;
-  const cy = rect.top + rect.height/2;
+  const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2;
   for(let i=0; i<count; i++) {
-    parts.push({
-      x: cx, y: cy,
-      vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15,
-      c: `hsl(${Math.random()*360}, 100%, 50%)`, life: 50
-    });
+    parts.push({x:cx, y:cy, vx:(Math.random()-0.5)*15, vy:(Math.random()-0.5)*15, c:`hsl(${Math.random()*360},100%,50%)`, life:50});
   }
 }
-
 function loop() {
   ctx.clearRect(0,0,cvs.width,cvs.height);
   parts.forEach((p, i) => {
@@ -391,10 +432,7 @@ function loop() {
   requestAnimationFrame(loop);
 }
 loop();
-
-window.addEventListener('resize', () => {
-  cvs.width = window.innerWidth; cvs.height = window.innerHeight;
-});
+window.addEventListener('resize', () => { cvs.width = window.innerWidth; cvs.height = window.innerHeight; });
 
 // Start
 initLevel();
