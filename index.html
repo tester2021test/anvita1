@@ -14,7 +14,7 @@
     overflow: hidden;
     background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
     font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
-    touch-action: none;
+    touch-action: none; /* Critical for mobile */
     display: flex;
     flex-direction: column;
     user-select: none;
@@ -144,12 +144,14 @@
     font-size: 3.5rem;
     cursor: grab;
     z-index: 10;
+    /* Prevents default browser drag behavior */
+    -webkit-touch-callout: none;
   }
 
   .item.dragging {
     position: fixed; 
-    z-index: 1000;
-    pointer-events: none; 
+    z-index: 9999; /* Ensure it's on top of everything */
+    pointer-events: none; /* Important for collision detection */
     box-shadow: 0 15px 30px rgba(0,0,0,0.3);
     transform: scale(1.2);
   }
@@ -365,7 +367,9 @@ function initLevel() {
     drag.dataset.id = item.id;
     drag.dataset.name = item.n; 
     drag.innerText = item.i;
+    drag.dataset.matched = "false"; // State Flag
 
+    // IMPORTANT: Setup Touch Logic
     enableTouchLogic(drag, slot);
 
     slot.appendChild(drag);
@@ -373,32 +377,51 @@ function initLevel() {
   });
 }
 
-// --- TOUCH LOGIC ---
+// --- FIXED TOUCH LOGIC ---
 function enableTouchLogic(el, homeSlot) {
-  
+  let isDragging = false;
+  let startX, startY;
+
   function onStart(e) {
-    e.preventDefault(); 
+    if(el.dataset.matched === "true") return; // Stop if already done
+    
+    // Prevent mouse emulation if touch triggers first
+    if(e.type === 'touchstart') e.preventDefault();
     if(audioCtx.state === 'suspended') audioCtx.resume();
+
+    isDragging = true;
     speak(el.dataset.name);
 
     const touch = e.touches ? e.touches[0] : e;
     const rect = el.getBoundingClientRect();
     
+    // Lock dimensions
     el.style.width = rect.width + 'px';
     el.style.height = rect.height + 'px';
     el.style.left = rect.left + 'px';
     el.style.top = rect.top + 'px';
     el.classList.add('dragging');
     
+    // Move to body
     document.body.appendChild(el);
     
     el.dataset.offsetX = touch.clientX - rect.left;
     el.dataset.offsetY = touch.clientY - rect.top;
+
+    // Attach MOVE/END listeners to WINDOW to catch dragging outside element
+    if (e.type === 'touchstart') {
+      window.addEventListener('touchmove', onMove, {passive: false});
+      window.addEventListener('touchend', onEnd);
+    } else {
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd);
+    }
   }
 
   function onMove(e) {
-    if(!el.classList.contains('dragging')) return;
-    e.preventDefault();
+    if(!isDragging) return;
+    if(e.type === 'touchmove') e.preventDefault(); // Stop scrolling
+
     const touch = e.touches ? e.touches[0] : e;
     
     const x = touch.clientX - (parseFloat(el.style.width)/2);
@@ -416,13 +439,21 @@ function enableTouchLogic(el, homeSlot) {
   }
 
   function onEnd(e) {
-    if(!el.classList.contains('dragging')) return;
-    
+    if(!isDragging) return;
+    isDragging = false;
+
+    // CLEANUP LISTENERS IMMEDIATELY
+    window.removeEventListener('touchmove', onMove);
+    window.removeEventListener('touchend', onEnd);
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onEnd);
+
     const target = document.getElementById(`target-${el.dataset.id}`);
     const isMatch = target && isColliding(el, target);
 
     if (isMatch) {
-      // SUCCESS
+      // SUCCESS LOGIC
+      el.dataset.matched = "true"; // Flag to prevent double-counting
       target.classList.remove('highlight');
       target.classList.add('matched');
       
@@ -430,16 +461,19 @@ function enableTouchLogic(el, homeSlot) {
       if(label) label.classList.add('show');
 
       speak("This is a " + el.dataset.name, 0.9);
-
       playPop();
       spawnConfetti(target.getBoundingClientRect());
+      
+      // Permanently remove
       el.remove(); 
       
       matchesLeft--;
       if(matchesLeft === 0) levelComplete();
+
     } else {
-      // FAIL
+      // FAIL LOGIC - Return Home
       document.querySelectorAll('.target').forEach(t => t.classList.remove('highlight'));
+      
       const homeRect = homeSlot.getBoundingClientRect();
       el.style.transition = 'all 0.3s ease';
       el.style.left = homeRect.left + 'px';
@@ -447,24 +481,23 @@ function enableTouchLogic(el, homeSlot) {
       el.style.transform = 'scale(1)'; 
 
       setTimeout(() => {
-        el.classList.remove('dragging');
-        el.style.transition = '';
-        el.style.width = '100%';
-        el.style.height = '100%';
-        el.style.left = '0';
-        el.style.top = '0';
-        el.style.position = 'absolute'; 
-        homeSlot.appendChild(el);
+        // Only put back if it wasn't matched in a weird race condition
+        if(el.dataset.matched === "false") {
+          el.classList.remove('dragging');
+          el.style.transition = '';
+          el.style.width = '100%';
+          el.style.height = '100%';
+          el.style.left = '0';
+          el.style.top = '0';
+          el.style.position = 'absolute'; 
+          homeSlot.appendChild(el);
+        }
       }, 300);
     }
   }
 
   el.addEventListener('touchstart', onStart, {passive:false});
-  el.addEventListener('touchmove', onMove, {passive:false});
-  el.addEventListener('touchend', onEnd);
   el.addEventListener('mousedown', onStart);
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', onEnd);
 }
 
 function isColliding(el1, el2) {
@@ -477,14 +510,11 @@ function isColliding(el1, el2) {
 function levelComplete() {
   score += 10;
   document.getElementById('score').innerText = score;
-  
-  // SPEECH FOR LEVEL COMPLETE
   speak("Very Good Anvita!");
-  
   document.getElementById('level-msg').classList.add('show');
   playWin();
   spawnConfetti({left: window.innerWidth/2, top: window.innerHeight/2, width:0, height:0}, 100);
-  setTimeout(initLevel, 3000); // 3 seconds before next level
+  setTimeout(initLevel, 3000);
 }
 
 // --- SOUND FX ---
