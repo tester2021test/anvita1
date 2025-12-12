@@ -3,405 +3,516 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Fun Match</title>
+<title>Fun Match 100</title>
 <style>
-  /* RESET & BASIC SETUP */
+  /* --- RESET & LAYOUT --- */
   body {
     margin: 0;
     padding: 0;
     width: 100vw;
     height: 100vh;
-    overflow: hidden; /* No scrolling allowed */
-    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-    font-family: 'Comic Sans MS', sans-serif;
-    touch-action: none; /* KEY: Stops phone from scrolling when you touch */
+    overflow: hidden;
+    background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+    font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+    touch-action: none; /* KEY: Disables browser zooming/scrolling */
     display: flex;
     flex-direction: column;
     align-items: center;
+    user-select: none;
   }
 
-  /* TITLE */
+  /* --- HEADER & HUD --- */
+  header {
+    width: 90%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    z-index: 10;
+  }
+  
   h1 {
-    margin: 15px 0 5px 0;
-    font-size: 1.5rem;
-    color: #444;
+    margin: 0;
+    font-size: 1.2rem;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
   }
 
-  /* GAME CONTAINER */
+  .score-board {
+    background: rgba(255, 255, 255, 0.3);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    color: #fff;
+    backdrop-filter: blur(5px);
+  }
+
+  /* --- GAME AREA --- */
   .game-area {
     flex: 1;
     width: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly;
+    justify-content: space-evenly; /* Spreads top and bottom rows */
     align-items: center;
     position: relative;
   }
 
-  /* TARGETS (TOP ROW) */
-  .targets-row {
+  /* --- ROW STYLES --- */
+  .row {
     display: flex;
-    justify-content: space-around;
-    width: 90%;
+    justify-content: space-evenly; /* Even spacing for 3 items */
+    width: 100%;
+    padding: 0 10px;
+    box-sizing: border-box;
   }
 
+  /* --- TARGETS (TOP) --- */
   .target {
-    width: 120px;
-    height: 120px;
-    border: 4px dashed #ccc;
-    border-radius: 20px;
-    background-color: rgba(255,255,255,0.5);
+    width: 28vw;  /* Responsive size: fits 3 in a row */
+    height: 28vw;
+    max-width: 130px;
+    max-height: 130px;
+    border: 3px dashed #fff;
+    border-radius: 15px;
+    background-color: rgba(255,255,255,0.25);
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 3rem;
-    opacity: 0.5; /* Faded look */
-    transition: all 0.3s;
-    position: relative;
+    font-size: 3.5rem; /* Large Emoji */
+    opacity: 0.6; /* Ghost look */
+    transition: transform 0.2s, background-color 0.2s;
   }
 
   .target.highlight {
-    background-color: #e0f7fa;
-    border-color: #26c6da;
-    transform: scale(1.1);
+    background-color: rgba(255, 255, 255, 0.6);
+    transform: scale(1.05);
+    border-style: solid;
   }
 
   .target.matched {
-    border-style: solid;
-    border-color: #66bb6a;
+    border: 4px solid #4CAF50;
     background-color: #fff;
     opacity: 1;
     transform: scale(1.1);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
-  /* DRAGGABLES (BOTTOM ROW) */
-  .draggables-row {
-    display: flex;
-    justify-content: space-around;
-    width: 90%;
-    height: 130px; /* Space for items */
+  /* --- DRAGGABLES (BOTTOM) --- */
+  /* Placeholder slots to keep spacing */
+  .slot {
+    width: 25vw;
+    height: 25vw;
+    max-width: 110px;
+    max-height: 110px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 50%;
   }
 
+  /* The actual draggable item */
   .item {
-    width: 100px;
-    height: 100px;
+    width: 25vw;
+    height: 25vw;
+    max-width: 110px;
+    max-height: 110px;
     background: white;
     border-radius: 50%;
-    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 3.5rem;
-    cursor: pointer;
+    font-size: 4rem;
+    position: absolute; /* Vital for free movement */
     z-index: 100;
-    
-    /* CRITICAL FOR DRAGGING */
-    position: absolute; 
-    /* We don't set top/left here, JS handles it */
+    cursor: grab;
+    touch-action: none;
   }
 
-  /* PLACEHOLDER (Keeps space in the bottom row) */
-  .slot {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.05);
+  .item:active {
+    cursor: grabbing;
+    transform: scale(1.1);
   }
 
-  /* CONFETTI */
+  /* --- OVERLAYS --- */
+  #level-msg {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: white;
+    padding: 30px 50px;
+    border-radius: 25px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    font-size: 2.5rem;
+    z-index: 2000;
+    text-align: center;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  #level-msg.show {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
   canvas {
     position: fixed;
     top: 0; left: 0;
     pointer-events: none;
-    z-index: 9999;
+    z-index: 1500;
   }
 
-  /* RESTART BUTTON (Hidden usually) */
-  #msg {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px 40px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    font-size: 2rem;
-    display: none;
-    z-index: 1000;
-    text-align: center;
+  @keyframes pop {
+    0% { transform: scale(0.8); }
+    100% { transform: scale(1.1); }
   }
 </style>
 </head>
 <body>
 
-  <h1>Match the Pictures!</h1>
+  <header>
+    <h1>Match 3!</h1>
+    <div class="score-board">Score: <span id="score">0</span></div>
+  </header>
 
   <div class="game-area">
-    <div class="targets-row" id="targets"></div>
+    <div class="row" id="targets-container"></div>
     
-    <div class="draggables-row" id="slots">
-      </div>
+    <div class="row" id="slots-container"></div>
   </div>
 
-  <div id="msg">Good Job! 🎉</div>
+  <div id="level-msg">Awesome! 🌟</div>
   <canvas id="confetti"></canvas>
 
 <script>
-// --- GAME DATA (Using Emojis for reliability) ---
+/* --------------------------------------------------
+   1. HUGE DATASET (100+ ITEMS)
+   --------------------------------------------------
+*/
 const DATA = [
-  { id: 'lion', icon: '🦁' },
-  { id: 'monkey', icon: '🐵' },
-  { id: 'dog', icon: '🐶' },
-  { id: 'cat', icon: '🐱' },
-  { id: 'apple', icon: '🍎' },
-  { id: 'banana', icon: '🍌' },
-  { id: 'grapes', icon: '🍇' },
-  { id: 'car', icon: '🚗' },
-  { id: 'bus', icon: '🚌' },
-  { id: 'rocket', icon: '🚀' },
-  { id: 'ball', icon: '⚽' },
-  { id: 'star', icon: '⭐' },
-  { id: 'flower', icon: '🌻' },
-  { id: 'tree', icon: '🌲' }
+  // Animals
+  {id:'lion', i:'🦁'}, {id:'tiger', i:'🐯'}, {id:'monkey', i:'🐵'}, {id:'dog', i:'🐶'}, 
+  {id:'cat', i:'🐱'}, {id:'fox', i:'🦊'}, {id:'bear', i:'🐻'}, {id:'panda', i:'🐼'}, 
+  {id:'koala', i:'🐨'}, {id:'cow', i:'🐮'}, {id:'pig', i:'🐷'}, {id:'frog', i:'🐸'}, 
+  {id:'octopus', i:'🐙'}, {id:'turtle', i:'🐢'}, {id:'snake', i:'🐍'}, {id:'whale', i:'🐳'}, 
+  {id:'dolphin', i:'🐬'}, {id:'fish', i:'🐠'}, {id:'butterfly', i:'🦋'}, {id:'bee', i:'🐝'},
+  {id:'owl', i:'🦉'}, {id:'duck', i:'🦆'}, {id:'flamingo', i:'🦩'}, {id:'parrot', i:'🦜'},
+  {id:'unicorn', i:'🦄'}, {id:'rabbit', i:'🐰'}, {id:'mouse', i:'🐭'}, {id:'hamster', i:'🐹'},
+
+  // Food
+  {id:'apple', i:'🍎'}, {id:'pear', i:'🍐'}, {id:'orange', i:'🍊'}, {id:'lemon', i:'🍋'}, 
+  {id:'banana', i:'🍌'}, {id:'watermelon', i:'🍉'}, {id:'grapes', i:'🍇'}, {id:'strawberry', i:'🍓'}, 
+  {id:'cherry', i:'🍒'}, {id:'peach', i:'🍑'}, {id:'pineapple', i:'🍍'}, {id:'kiwi', i:'🥝'}, 
+  {id:'tomato', i:'🍅'}, {id:'avocado', i:'🥑'}, {id:'carrot', i:'🥕'}, {id:'corn', i:'🌽'}, 
+  {id:'pepper', i:'🌶️'}, {id:'bread', i:'🍞'}, {id:'croissant', i:'🥐'}, {id:'cheese', i:'🧀'}, 
+  {id:'egg', i:'🥚'}, {id:'pizza', i:'🍕'}, {id:'burger', i:'🍔'}, {id:'fries', i:'🍟'}, 
+  {id:'hotdog', i:'🌭'}, {id:'popcorn', i:'🍿'}, {id:'donut', i:'🍩'}, {id:'cookie', i:'🍪'}, 
+  {id:'cake', i:'🍰'}, {id:'choco', i:'🍫'}, {id:'candy', i:'🍬'}, {id:'icecream', i:'🍦'},
+
+  // Vehicles
+  {id:'car', i:'🚗'}, {id:'taxi', i:'🚕'}, {id:'bus', i:'🚌'}, {id:'police', i:'🚓'}, 
+  {id:'ambulance', i:'🚑'}, {id:'fire', i:'🚒'}, {id:'truck', i:'🚚'}, {id:'tractor', i:'🚜'}, 
+  {id:'scooter', i:'🛵'}, {id:'bike', i:'🚲'}, {id:'train', i:'🚂'}, {id:'rocket', i:'🚀'}, 
+  {id:'ufo', i:'🛸'}, {id:'helicopter', i:'🚁'}, {id:'boat', i:'⛵'}, {id:'ship', i:'🚢'},
+
+  // Nature & Objects
+  {id:'sun', i:'☀️'}, {id:'moon', i:'🌙'}, {id:'star', i:'⭐'}, {id:'rainbow', i:'🌈'}, 
+  {id:'cloud', i:'☁️'}, {id:'fire', i:'🔥'}, {id:'tree', i:'🌲'}, {id:'cactus', i:'🌵'}, 
+  {id:'flower', i:'🌻'}, {id:'rose', i:'🌹'}, {id:'tulip', i:'🌷'}, {id:'palm', i:'🌴'},
+  {id:'ball', i:'⚽'}, {id:'basket', i:'🏀'}, {id:'football', i:'🏈'}, {id:'tennis', i:'🎾'}, 
+  {id:'balloon', i:'🎈'}, {id:'gift', i:'🎁'}, {id:'trophy', i:'🏆'}, {id:'crown', i:'👑'}, 
+  {id:'gem', i:'💎'}, {id:'bell', i:'🔔'}, {id:'music', i:'🎵'}, {id:'camera', i:'📷'},
+  {id:'phone', i:'📱'}, {id:'tv', i:'📺'}, {id:'bulb', i:'💡'}, {id:'book', i:'📚'}
 ];
 
-let currentLevelItems = [];
+/* --------------------------------------------------
+   2. GAME STATE
+   --------------------------------------------------
+*/
+let score = 0;
 let matchesLeft = 0;
+const ITEMS_PER_LEVEL = 3; // Difficulty setting
 
-// --- INIT ---
-function initGame() {
-  // Pick 2 random items
-  const shuffled = [...DATA].sort(() => 0.5 - Math.random());
-  currentLevelItems = shuffled.slice(0, 2);
-  matchesLeft = 2;
+// Audio Context (Safe Init)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  const targetsDiv = document.getElementById('targets');
-  const slotsDiv = document.getElementById('slots');
+/* --------------------------------------------------
+   3. INIT & LEVEL GENERATION
+   --------------------------------------------------
+*/
+function initLevel() {
+  const targetsDiv = document.getElementById('targets-container');
+  const slotsDiv = document.getElementById('slots-container');
+  const msgDiv = document.getElementById('level-msg');
+  
+  // Cleanup
   targetsDiv.innerHTML = '';
   slotsDiv.innerHTML = '';
+  msgDiv.classList.remove('show');
+  
+  // 1. Pick 3 Random Items
+  const shuffledData = [...DATA].sort(() => 0.5 - Math.random());
+  const levelItems = shuffledData.slice(0, ITEMS_PER_LEVEL);
+  matchesLeft = ITEMS_PER_LEVEL;
 
-  // 1. Create Targets (Drop Zones)
-  currentLevelItems.forEach(item => {
+  // 2. Create Targets (Top Row)
+  levelItems.forEach(item => {
     const t = document.createElement('div');
     t.className = 'target';
     t.id = `target-${item.id}`;
-    // Show faded emoji as hint
-    t.innerText = item.icon; 
+    t.innerText = item.i; // The emoji ghost
     targetsDiv.appendChild(t);
   });
 
-  // 2. Create Draggables (Items)
-  // Shuffle them so they don't align perfectly
-  const dragItems = [...currentLevelItems].sort(() => 0.5 - Math.random());
+  // 3. Create Draggables (Bottom Row) - Shuffled!
+  const dragItems = [...levelItems].sort(() => 0.5 - Math.random());
   
   dragItems.forEach(item => {
-    // Create a "Slot" to hold the place visually
+    // Create Slot (Invisible holder for spacing)
     const slot = document.createElement('div');
     slot.className = 'slot';
     slotsDiv.appendChild(slot);
 
-    // Create the actual Draggable Item
+    // Create Item
     const drag = document.createElement('div');
     drag.className = 'item';
     drag.id = `drag-${item.id}`;
-    drag.innerText = item.icon;
     drag.dataset.id = item.id;
+    drag.innerText = item.i;
+
+    // Position initial logic
+    // We append to body to ensure it floats over everything, 
+    // but we need to calculate where the slot is first.
+    document.body.appendChild(drag);
     
-    // Position it exactly over the slot initially
+    // Set position to match the slot
     const rect = slot.getBoundingClientRect();
     drag.style.left = rect.left + 'px';
     drag.style.top = rect.top + 'px';
+    drag.dataset.homeX = rect.left;
+    drag.dataset.homeY = rect.top;
 
-    // Add Touch Logic
-    enableDrag(drag, slot);
-    
-    document.body.appendChild(drag); // Move to body for easier dragging
+    // Attach Touch/Mouse Logic
+    makeDraggable(drag);
   });
 }
 
-// --- TOUCH LOGIC (The Fix) ---
-function enableDrag(el, homeSlot) {
-  let startX, startY;
-  let initialLeft, initialTop;
-
-  // Function to move element
-  function moveAt(pageX, pageY) {
-    // Center the item under the finger
-    el.style.left = pageX - el.offsetWidth / 2 + 'px';
-    el.style.top = pageY - el.offsetHeight / 2 + 'px';
-  }
+/* --------------------------------------------------
+   4. DRAG & DROP LOGIC (Robust for Mobile)
+   --------------------------------------------------
+*/
+function makeDraggable(el) {
+  let isDragging = false;
 
   function onStart(e) {
-    // Prevent default to stop scrolling
-    e.preventDefault(); 
-    const point = e.touches ? e.touches[0] : e;
+    if(e.type === 'touchstart') e.preventDefault(); // Stop Scroll
+    isDragging = true;
     
-    // Remember start pos in case we need to go back
-    const rect = el.getBoundingClientRect();
-    initialLeft = rect.left;
-    initialTop = rect.top;
+    // Resume audio context on first user interaction
+    if(audioCtx.state === 'suspended') audioCtx.resume();
 
-    el.style.zIndex = 1000; // Bring to front
-    el.style.transform = "scale(1.2)"; // Pop effect
-    
-    moveAt(point.pageX, point.pageY);
+    // Visual Pop
+    el.style.transition = 'none'; // No lag when dragging
+    el.style.zIndex = 1000;
+    el.style.transform = "scale(1.2)";
+
+    moveAt(e);
   }
 
   function onMove(e) {
-    e.preventDefault(); // Stop scrolling
-    const point = e.touches ? e.touches[0] : e;
+    if (!isDragging) return;
+    if(e.type === 'touchmove') e.preventDefault(); // Stop Scroll
+    moveAt(e);
     
-    // Move slightly above finger (offset -50px) so they can see it
-    el.style.left = point.pageX - el.offsetWidth / 2 + 'px';
-    el.style.top = (point.pageY - el.offsetHeight / 2) - 50 + 'px'; 
-
-    // Check if near target for highlight
-    checkHover(el);
+    // Highlight logic
+    const target = document.getElementById(`target-${el.dataset.id}`);
+    if (target && isColliding(el, target)) {
+      target.classList.add('highlight');
+    } else {
+      // Remove highlight from all if not near
+      document.querySelectorAll('.target').forEach(t => t.classList.remove('highlight'));
+    }
   }
 
   function onEnd(e) {
-    el.style.transform = "scale(1)";
+    if (!isDragging) return;
+    isDragging = false;
+    
     el.style.zIndex = 100;
-
+    el.style.transform = "scale(1)";
+    
     const target = document.getElementById(`target-${el.dataset.id}`);
     
-    if (isColliding(el, target)) {
-      // SUCCESS!
-      snapToTarget(el, target);
+    // Check Collision
+    if (target && isColliding(el, target)) {
+      handleMatch(el, target);
     } else {
-      // FAIL: Go back home
-      el.style.transition = "all 0.3s ease";
-      el.style.left = homeSlot.getBoundingClientRect().left + 'px';
-      el.style.top = homeSlot.getBoundingClientRect().top + 'px';
-      // Remove transition after it lands
-      setTimeout(() => el.style.transition = '', 300);
+      // Return to home
+      returnToHome(el);
+      document.querySelectorAll('.target').forEach(t => t.classList.remove('highlight'));
     }
-
-    // Clear highlights
-    document.querySelectorAll('.target').forEach(t => t.classList.remove('highlight'));
   }
 
-  // Add Listeners (Both Touch and Mouse)
-  el.addEventListener('touchstart', onStart, {passive: false});
-  el.addEventListener('touchmove', onMove, {passive: false});
-  el.addEventListener('touchend', onEnd);
-  
-  el.addEventListener('mousedown', onStart);
-  document.addEventListener('mousemove', (e) => {
-    if(el.style.zIndex == 1000) onMove(e);
-  });
-  el.addEventListener('mouseup', (e) => {
-    if(el.style.zIndex == 1000) onEnd(e);
-  });
-}
+  function moveAt(e) {
+    const pageX = e.touches ? e.touches[0].pageX : e.pageX;
+    const pageY = e.touches ? e.touches[0].pageY : e.pageY;
+    
+    // Offset so finger doesn't cover the item completely
+    el.style.left = (pageX - el.offsetWidth / 2) + 'px';
+    el.style.top = (pageY - el.offsetHeight / 2 - 50) + 'px'; 
+  }
 
-// --- HELPERS ---
-function checkHover(dragEl) {
-  document.querySelectorAll('.target').forEach(target => {
-    if (isColliding(dragEl, target)) {
-      target.classList.add('highlight');
-    } else {
-      target.classList.remove('highlight');
-    }
-  });
+  // Event Listeners
+  el.addEventListener('mousedown', onStart);
+  el.addEventListener('touchstart', onStart, {passive: false});
+
+  // Global listeners for move/end to prevent losing the drag if moving fast
+  window.addEventListener('mousemove', onMove, {passive: false});
+  window.addEventListener('touchmove', onMove, {passive: false});
+  
+  window.addEventListener('mouseup', onEnd);
+  window.addEventListener('touchend', onEnd);
 }
 
 function isColliding(el1, el2) {
   const r1 = el1.getBoundingClientRect();
   const r2 = el2.getBoundingClientRect();
-  
-  // Calculate center points
-  const c1x = r1.left + r1.width/2;
-  const c1y = r1.top + r1.height/2;
-  const c2x = r2.left + r2.width/2;
-  const c2y = r2.top + r2.height/2;
-
-  // Distance formula
-  const dist = Math.hypot(c1x - c2x, c1y - c2y);
-  
-  // Snap if within 80 pixels
-  return dist < 80;
+  const dist = Math.hypot(
+    (r1.left + r1.width/2) - (r2.left + r2.width/2),
+    (r1.top + r1.height/2) - (r2.top + r2.height/2)
+  );
+  return dist < 80; // Collision threshold
 }
 
-function snapToTarget(el, target) {
+function returnToHome(el) {
+  el.style.transition = "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+  el.style.left = el.dataset.homeX + 'px';
+  el.style.top = el.dataset.homeY + 'px';
+}
+
+function handleMatch(el, target) {
+  // Snap visuals
   const rect = target.getBoundingClientRect();
-  
-  // Snap animation
   el.style.transition = "all 0.2s ease";
   el.style.left = rect.left + 'px';
   el.style.top = rect.top + 'px';
+  el.style.opacity = '0'; // Hide drag item, show matched target
+
+  target.classList.remove('highlight');
+  target.classList.add('matched'); // Turns solid and pops
+
+  // Sound & FX
+  playPopSound();
+  spawnConfetti(rect.left + rect.width/2, rect.top + rect.height/2, 15);
   
-  // Visual success
-  target.classList.add('matched');
-  el.remove(); // Remove draggable, target now shows full opacity icon
-  
-  // Sound
-  playSound();
-  spawnConfetti(rect.left + rect.width/2, rect.top + rect.height/2);
+  // Cleanup drag item after anim
+  setTimeout(() => el.remove(), 200);
 
   matchesLeft--;
   if (matchesLeft === 0) {
-    setTimeout(levelComplete, 500);
+    levelComplete();
   }
 }
 
 function levelComplete() {
-  const msg = document.getElementById('msg');
-  msg.style.display = 'block';
-  spawnConfetti(window.innerWidth/2, window.innerHeight/2, 50);
+  score += 10;
+  document.getElementById('score').innerText = score;
   
-  // Auto Next after 2 seconds
+  spawnConfetti(window.innerWidth/2, window.innerHeight/2, 100);
+  playWinSound();
+
+  const msg = document.getElementById('level-msg');
+  msg.classList.add('show');
+
   setTimeout(() => {
-    msg.style.display = 'none';
-    initGame();
+    initLevel();
   }, 2000);
 }
 
-// --- SOUND & EFFECTS ---
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playSound() {
-  if(audioCtx.state === 'suspended') audioCtx.resume();
+/* --------------------------------------------------
+   5. AUDIO & VISUAL FX
+   --------------------------------------------------
+*/
+function playPopSound() {
   const osc = audioCtx.createOscillator();
   const g = audioCtx.createGain();
   osc.connect(g); g.connect(audioCtx.destination);
-  osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-  osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+  
+  osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
+  
   g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-  g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-  osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+  g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+  
+  osc.start(); osc.stop(audioCtx.currentTime + 0.1);
 }
 
-// Confetti
+function playWinSound() {
+  const now = audioCtx.currentTime;
+  // Simple Major Chord Arpeggio
+  [440, 554, 659].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.connect(g); g.connect(audioCtx.destination);
+    
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, now + i*0.1);
+    g.gain.linearRampToValueAtTime(0.1, now + i*0.1 + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 0.4);
+    
+    osc.start(now + i*0.1); 
+    osc.stop(now + i*0.1 + 0.4);
+  });
+}
+
+// Simple Confetti Engine
 const canvas = document.getElementById('confetti');
 const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 let particles = [];
 
-function spawnConfetti(x, y, count=20) {
-  for(let i=0; i<count; i++) {
+function spawnConfetti(x, y, amount) {
+  const colors = ['#ff0', '#f00', '#0f0', '#00f', '#f0f', '#0ff'];
+  for(let i=0; i<amount; i++) {
     particles.push({
       x: x, y: y,
-      vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
-      life: 50, color: `hsl(${Math.random()*360}, 100%, 50%)`
+      vx: (Math.random()-0.5) * 15,
+      vy: (Math.random()-0.5) * 15,
+      grav: 0.5,
+      life: 60 + Math.random()*30,
+      color: colors[Math.floor(Math.random()*colors.length)]
     });
   }
 }
+
 function loop() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   for(let i=particles.length-1; i>=0; i--) {
     let p = particles[i];
-    p.x += p.vx; p.y += p.vy; p.life--;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += p.grav; // Gravity
+    p.life--;
+    
     ctx.fillStyle = p.color;
     ctx.fillRect(p.x, p.y, 8, 8);
-    if(p.life<=0) particles.splice(i,1);
+    
+    if(p.life <= 0) particles.splice(i, 1);
   }
   requestAnimationFrame(loop);
 }
 loop();
 
+// Handle Resize
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  // If we resize, items might be out of place, so we restart level for simplicity
+  initLevel();
+});
+
 // START
-initGame();
+initLevel();
+
 </script>
 </body>
 </html>
