@@ -3,167 +3,125 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Fun Match 100</title>
+<title>Fun Match Fixed</title>
 <style>
   /* --- RESET & LAYOUT --- */
   body {
     margin: 0;
     padding: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100vh; /* Full viewport height */
     overflow: hidden;
-    background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+    background: linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 100%);
     font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
-    touch-action: none; /* KEY: Disables browser zooming/scrolling */
+    touch-action: none; /* Prevents scrolling */
     display: flex;
     flex-direction: column;
-    align-items: center;
     user-select: none;
+    -webkit-user-select: none;
   }
 
-  /* --- HEADER & HUD --- */
+  /* --- HEADER --- */
   header {
-    width: 90%;
+    height: 10%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
-    z-index: 10;
+    padding: 0 20px;
   }
   
-  h1 {
-    margin: 0;
-    font-size: 1.2rem;
-    color: #fff;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  h1 { font-size: 1.2rem; color: #555; margin: 0; }
+  .score-board { 
+    background: white; padding: 5px 15px; 
+    border-radius: 15px; font-weight: bold; color: #333; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
 
-  .score-board {
-    background: rgba(255, 255, 255, 0.3);
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-weight: bold;
-    color: #fff;
-    backdrop-filter: blur(5px);
-  }
-
-  /* --- GAME AREA --- */
+  /* --- GAME AREA (Takes remaining space) --- */
   .game-area {
-    flex: 1;
-    width: 100%;
+    height: 90%;
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly; /* Spreads top and bottom rows */
+    justify-content: space-evenly; /* Spreads Top and Bottom rows apart */
     align-items: center;
-    position: relative;
+    padding-bottom: 20px;
   }
 
-  /* --- ROW STYLES --- */
+  /* --- ROWS --- */
   .row {
     display: flex;
-    justify-content: space-evenly; /* Even spacing for 3 items */
+    justify-content: center;
+    gap: 15px; /* Space between items */
     width: 100%;
-    padding: 0 10px;
-    box-sizing: border-box;
   }
 
-  /* --- TARGETS (TOP) --- */
+  /* --- TARGETS (Top Boxes) --- */
   .target {
-    width: 28vw;  /* Responsive size: fits 3 in a row */
-    height: 28vw;
-    max-width: 130px;
-    max-height: 130px;
-    border: 3px dashed #fff;
+    width: 28vw; height: 28vw; /* Responsive squares */
+    max-width: 110px; max-height: 110px;
+    border: 3px dashed #888;
     border-radius: 15px;
-    background-color: rgba(255,255,255,0.25);
+    background-color: rgba(255,255,255,0.4);
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 3.5rem; /* Large Emoji */
-    opacity: 0.6; /* Ghost look */
-    transition: transform 0.2s, background-color 0.2s;
+    font-size: 3rem;
+    opacity: 0.5;
+    transition: transform 0.2s;
+  }
+  .target.highlight { background: #fff; transform: scale(1.1); border-color: #333; }
+  .target.matched { 
+    border: 3px solid #4CAF50; background: white; opacity: 1; 
+    transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.2);
   }
 
-  .target.highlight {
-    background-color: rgba(255, 255, 255, 0.6);
-    transform: scale(1.05);
-    border-style: solid;
-  }
-
-  .target.matched {
-    border: 4px solid #4CAF50;
-    background-color: #fff;
-    opacity: 1;
-    transform: scale(1.1);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-    animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-
-  /* --- DRAGGABLES (BOTTOM) --- */
-  /* Placeholder slots to keep spacing */
+  /* --- SLOTS & ITEMS (Bottom Circles) --- */
+  /* The Slot is the "Home" for the item */
   .slot {
-    width: 25vw;
-    height: 25vw;
-    max-width: 110px;
-    max-height: 110px;
-    background: rgba(0,0,0,0.05);
+    width: 26vw; height: 26vw;
+    max-width: 100px; max-height: 100px;
+    background: rgba(0,0,0,0.1); /* Dark circle placeholder */
     border-radius: 50%;
+    position: relative; /* CRITICAL: Item sits inside this relative to it */
   }
 
-  /* The actual draggable item */
+  /* The Item sits INSIDE the slot by default */
   .item {
-    width: 25vw;
-    height: 25vw;
-    max-width: 110px;
-    max-height: 110px;
+    width: 100%; height: 100%; /* Fill the slot completely */
+    position: absolute; /* Lock to the slot */
+    top: 0; left: 0;
     background: white;
     border-radius: 50%;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 4rem;
-    position: absolute; /* Vital for free movement */
-    z-index: 100;
+    font-size: 3.5rem;
     cursor: grab;
-    touch-action: none;
+    z-index: 10;
   }
 
-  .item:active {
-    cursor: grabbing;
-    transform: scale(1.1);
+  /* When we drag, we switch to this class */
+  .item.dragging {
+    position: fixed; /* Break out of the slot */
+    z-index: 1000;
+    pointer-events: none; /* Helps touch events pass through to check collision */
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    transform: scale(1.2);
   }
 
-  /* --- OVERLAYS --- */
+  /* --- POPUP --- */
   #level-msg {
-    position: fixed;
-    top: 50%; left: 50%;
+    position: fixed; top: 50%; left: 50%;
     transform: translate(-50%, -50%) scale(0);
-    background: white;
-    padding: 30px 50px;
-    border-radius: 25px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-    font-size: 2.5rem;
-    z-index: 2000;
-    text-align: center;
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: white; padding: 20px 40px;
+    border-radius: 20px; font-size: 2rem;
+    box-shadow: 0 0 50px rgba(0,0,0,0.2);
+    z-index: 2000; transition: transform 0.3s;
   }
+  #level-msg.show { transform: translate(-50%, -50%) scale(1); }
   
-  #level-msg.show {
-    transform: translate(-50%, -50%) scale(1);
-  }
-
-  canvas {
-    position: fixed;
-    top: 0; left: 0;
-    pointer-events: none;
-    z-index: 1500;
-  }
-
-  @keyframes pop {
-    0% { transform: scale(0.8); }
-    100% { transform: scale(1.1); }
-  }
+  canvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 1500; }
 </style>
 </head>
 <body>
@@ -179,199 +137,187 @@
     <div class="row" id="slots-container"></div>
   </div>
 
-  <div id="level-msg">Awesome! 🌟</div>
+  <div id="level-msg">Great Job! 🎉</div>
   <canvas id="confetti"></canvas>
 
 <script>
-/* --------------------------------------------------
-   1. HUGE DATASET (100+ ITEMS)
-   --------------------------------------------------
-*/
+// --- DATA (Over 100 items mixed) ---
 const DATA = [
-  // Animals
-  {id:'lion', i:'🦁'}, {id:'tiger', i:'🐯'}, {id:'monkey', i:'🐵'}, {id:'dog', i:'🐶'}, 
-  {id:'cat', i:'🐱'}, {id:'fox', i:'🦊'}, {id:'bear', i:'🐻'}, {id:'panda', i:'🐼'}, 
-  {id:'koala', i:'🐨'}, {id:'cow', i:'🐮'}, {id:'pig', i:'🐷'}, {id:'frog', i:'🐸'}, 
-  {id:'octopus', i:'🐙'}, {id:'turtle', i:'🐢'}, {id:'snake', i:'🐍'}, {id:'whale', i:'🐳'}, 
-  {id:'dolphin', i:'🐬'}, {id:'fish', i:'🐠'}, {id:'butterfly', i:'🦋'}, {id:'bee', i:'🐝'},
-  {id:'owl', i:'🦉'}, {id:'duck', i:'🦆'}, {id:'flamingo', i:'🦩'}, {id:'parrot', i:'🦜'},
-  {id:'unicorn', i:'🦄'}, {id:'rabbit', i:'🐰'}, {id:'mouse', i:'🐭'}, {id:'hamster', i:'🐹'},
-
-  // Food
-  {id:'apple', i:'🍎'}, {id:'pear', i:'🍐'}, {id:'orange', i:'🍊'}, {id:'lemon', i:'🍋'}, 
-  {id:'banana', i:'🍌'}, {id:'watermelon', i:'🍉'}, {id:'grapes', i:'🍇'}, {id:'strawberry', i:'🍓'}, 
-  {id:'cherry', i:'🍒'}, {id:'peach', i:'🍑'}, {id:'pineapple', i:'🍍'}, {id:'kiwi', i:'🥝'}, 
-  {id:'tomato', i:'🍅'}, {id:'avocado', i:'🥑'}, {id:'carrot', i:'🥕'}, {id:'corn', i:'🌽'}, 
-  {id:'pepper', i:'🌶️'}, {id:'bread', i:'🍞'}, {id:'croissant', i:'🥐'}, {id:'cheese', i:'🧀'}, 
-  {id:'egg', i:'🥚'}, {id:'pizza', i:'🍕'}, {id:'burger', i:'🍔'}, {id:'fries', i:'🍟'}, 
-  {id:'hotdog', i:'🌭'}, {id:'popcorn', i:'🍿'}, {id:'donut', i:'🍩'}, {id:'cookie', i:'🍪'}, 
-  {id:'cake', i:'🍰'}, {id:'choco', i:'🍫'}, {id:'candy', i:'🍬'}, {id:'icecream', i:'🍦'},
-
-  // Vehicles
-  {id:'car', i:'🚗'}, {id:'taxi', i:'🚕'}, {id:'bus', i:'🚌'}, {id:'police', i:'🚓'}, 
-  {id:'ambulance', i:'🚑'}, {id:'fire', i:'🚒'}, {id:'truck', i:'🚚'}, {id:'tractor', i:'🚜'}, 
-  {id:'scooter', i:'🛵'}, {id:'bike', i:'🚲'}, {id:'train', i:'🚂'}, {id:'rocket', i:'🚀'}, 
-  {id:'ufo', i:'🛸'}, {id:'helicopter', i:'🚁'}, {id:'boat', i:'⛵'}, {id:'ship', i:'🚢'},
-
-  // Nature & Objects
-  {id:'sun', i:'☀️'}, {id:'moon', i:'🌙'}, {id:'star', i:'⭐'}, {id:'rainbow', i:'🌈'}, 
-  {id:'cloud', i:'☁️'}, {id:'fire', i:'🔥'}, {id:'tree', i:'🌲'}, {id:'cactus', i:'🌵'}, 
-  {id:'flower', i:'🌻'}, {id:'rose', i:'🌹'}, {id:'tulip', i:'🌷'}, {id:'palm', i:'🌴'},
-  {id:'ball', i:'⚽'}, {id:'basket', i:'🏀'}, {id:'football', i:'🏈'}, {id:'tennis', i:'🎾'}, 
-  {id:'balloon', i:'🎈'}, {id:'gift', i:'🎁'}, {id:'trophy', i:'🏆'}, {id:'crown', i:'👑'}, 
-  {id:'gem', i:'💎'}, {id:'bell', i:'🔔'}, {id:'music', i:'🎵'}, {id:'camera', i:'📷'},
-  {id:'phone', i:'📱'}, {id:'tv', i:'📺'}, {id:'bulb', i:'💡'}, {id:'book', i:'📚'}
+  {id:'lion',i:'🦁'},{id:'dog',i:'🐶'},{id:'cat',i:'🐱'},{id:'bear',i:'🐻'},{id:'panda',i:'🐼'},
+  {id:'pig',i:'🐷'},{id:'frog',i:'🐸'},{id:'octo',i:'🐙'},{id:'turtle',i:'🐢'},{id:'bee',i:'🐝'},
+  {id:'apple',i:'🍎'},{id:'banana',i:'🍌'},{id:'grapes',i:'🍇'},{id:'pizza',i:'🍕'},{id:'burger',i:'🍔'},
+  {id:'car',i:'🚗'},{id:'bus',i:'🚌'},{id:'rocket',i:'🚀'},{id:'ship',i:'🚢'},{id:'train',i:'🚂'},
+  {id:'sun',i:'☀️'},{id:'moon',i:'🌙'},{id:'star',i:'⭐'},{id:'ball',i:'⚽'},{id:'flower',i:'🌻'},
+  {id:'fox',i:'🦊'},{id:'mouse',i:'🐭'},{id:'bunny',i:'🐰'},{id:'koala',i:'🐨'},{id:'tiger',i:'🐯'},
+  {id:'cow',i:'🐮'},{id:'chick',i:'🐤'},{id:'whale',i:'🐳'},{id:'fish',i:'🐠'},{id:'crab',i:'🦀'},
+  {id:'corn',i:'🌽'},{id:'carrot',i:'🥕'},{id:'fries',i:'🍟'},{id:'egg',i:'🥚'},{id:'cookie',i:'🍪'},
+  {id:'choco',i:'🍫'},{id:'candy',i:'🍬'},{id:'cake',i:'🍰'},{id:'donut',i:'🍩'},{id:'ice',i:'🍦'},
+  {id:'police',i:'🚓'},{id:'fire',i:'🚒'},{id:'taxi',i:'🚕'},{id:'bike',i:'🚲'},{id:'plane',i:'✈️'},
+  {id:'tree',i:'🌲'},{id:'leaf',i:'🍁'},{id:'rose',i:'🌹'},{id:'cactus',i:'🌵'},{id:'palm',i:'🌴'},
+  {id:'gift',i:'🎁'},{id:'bell',i:'🔔'},{id:'music',i:'🎵'},{id:'heart',i:'❤️'},{id:'gem',i:'💎'},
+  {id:'book',i:'🧱'},{id:'bulb',i:'💡'},{id:'phone',i:'📱'},{id:'tv',i:'📺'},{id:'key',i:'🔑'}
 ];
 
-/* --------------------------------------------------
-   2. GAME STATE
-   --------------------------------------------------
-*/
+// --- STATE ---
 let score = 0;
 let matchesLeft = 0;
-const ITEMS_PER_LEVEL = 3; // Difficulty setting
-
-// Audio Context (Safe Init)
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-/* --------------------------------------------------
-   3. INIT & LEVEL GENERATION
-   --------------------------------------------------
-*/
+// --- INIT LEVEL ---
 function initLevel() {
   const targetsDiv = document.getElementById('targets-container');
   const slotsDiv = document.getElementById('slots-container');
   const msgDiv = document.getElementById('level-msg');
   
-  // Cleanup
   targetsDiv.innerHTML = '';
   slotsDiv.innerHTML = '';
   msgDiv.classList.remove('show');
   
-  // 1. Pick 3 Random Items
-  const shuffledData = [...DATA].sort(() => 0.5 - Math.random());
-  const levelItems = shuffledData.slice(0, ITEMS_PER_LEVEL);
-  matchesLeft = ITEMS_PER_LEVEL;
+  // Pick 3 random
+  const shuffled = [...DATA].sort(() => 0.5 - Math.random());
+  const levelItems = shuffled.slice(0, 3);
+  matchesLeft = 3;
 
-  // 2. Create Targets (Top Row)
+  // 1. Create Targets
   levelItems.forEach(item => {
     const t = document.createElement('div');
     t.className = 'target';
     t.id = `target-${item.id}`;
-    t.innerText = item.i; // The emoji ghost
+    t.innerText = item.i;
     targetsDiv.appendChild(t);
   });
 
-  // 3. Create Draggables (Bottom Row) - Shuffled!
+  // 2. Create Slots & Items (Shuffled)
   const dragItems = [...levelItems].sort(() => 0.5 - Math.random());
   
   dragItems.forEach(item => {
-    // Create Slot (Invisible holder for spacing)
+    // Create the container slot
     const slot = document.createElement('div');
     slot.className = 'slot';
-    slotsDiv.appendChild(slot);
-
-    // Create Item
+    
+    // Create the item INSIDE the slot
     const drag = document.createElement('div');
     drag.className = 'item';
     drag.id = `drag-${item.id}`;
     drag.dataset.id = item.id;
     drag.innerText = item.i;
 
-    // Position initial logic
-    // We append to body to ensure it floats over everything, 
-    // but we need to calculate where the slot is first.
-    document.body.appendChild(drag);
-    
-    // Set position to match the slot
-    const rect = slot.getBoundingClientRect();
-    drag.style.left = rect.left + 'px';
-    drag.style.top = rect.top + 'px';
-    drag.dataset.homeX = rect.left;
-    drag.dataset.homeY = rect.top;
+    // Attach Logic
+    enableTouchLogic(drag, slot);
 
-    // Attach Touch/Mouse Logic
-    makeDraggable(drag);
+    slot.appendChild(drag);
+    slotsDiv.appendChild(slot);
   });
 }
 
-/* --------------------------------------------------
-   4. DRAG & DROP LOGIC (Robust for Mobile)
-   --------------------------------------------------
-*/
-function makeDraggable(el) {
-  let isDragging = false;
-
+// --- TOUCH LOGIC (The Fixed Version) ---
+function enableTouchLogic(el, homeSlot) {
+  
   function onStart(e) {
-    if(e.type === 'touchstart') e.preventDefault(); // Stop Scroll
-    isDragging = true;
-    
-    // Resume audio context on first user interaction
+    e.preventDefault(); // Stop scrolling
     if(audioCtx.state === 'suspended') audioCtx.resume();
 
-    // Visual Pop
-    el.style.transition = 'none'; // No lag when dragging
-    el.style.zIndex = 1000;
-    el.style.transform = "scale(1.2)";
-
-    moveAt(e);
+    const touch = e.touches ? e.touches[0] : e;
+    
+    // 1. Calculate current size/position
+    const rect = el.getBoundingClientRect();
+    
+    // 2. Freeze dimensions (so it doesn't shrink when moved to body)
+    el.style.width = rect.width + 'px';
+    el.style.height = rect.height + 'px';
+    
+    // 3. Set position to fixed at current location
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    
+    // 4. Add 'dragging' class (changes to position: fixed)
+    el.classList.add('dragging');
+    
+    // 5. Move to body so it floats over everything
+    document.body.appendChild(el);
+    
+    // 6. Correction offset (center under finger)
+    el.dataset.offsetX = touch.clientX - rect.left;
+    el.dataset.offsetY = touch.clientY - rect.top;
   }
 
   function onMove(e) {
-    if (!isDragging) return;
-    if(e.type === 'touchmove') e.preventDefault(); // Stop Scroll
-    moveAt(e);
+    if(!el.classList.contains('dragging')) return;
+    e.preventDefault();
     
-    // Highlight logic
+    const touch = e.touches ? e.touches[0] : e;
+    
+    // Move element
+    // We lift it slightly (-50px) so the user can see what they are dragging
+    const x = touch.clientX - (parseFloat(el.style.width)/2);
+    const y = touch.clientY - (parseFloat(el.style.height)/2) - 50;
+    
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+
+    // Highlight Check
     const target = document.getElementById(`target-${el.dataset.id}`);
-    if (target && isColliding(el, target)) {
+    if(target && isColliding(el, target)) {
       target.classList.add('highlight');
     } else {
-      // Remove highlight from all if not near
       document.querySelectorAll('.target').forEach(t => t.classList.remove('highlight'));
     }
   }
 
   function onEnd(e) {
-    if (!isDragging) return;
-    isDragging = false;
-    
-    el.style.zIndex = 100;
-    el.style.transform = "scale(1)";
+    if(!el.classList.contains('dragging')) return;
     
     const target = document.getElementById(`target-${el.dataset.id}`);
-    
-    // Check Collision
-    if (target && isColliding(el, target)) {
-      handleMatch(el, target);
+    const isMatch = target && isColliding(el, target);
+
+    if (isMatch) {
+      // SUCCESS
+      target.classList.remove('highlight');
+      target.classList.add('matched');
+      playPop();
+      spawnConfetti(target.getBoundingClientRect());
+      el.remove(); // Remove draggable
+      
+      matchesLeft--;
+      if(matchesLeft === 0) levelComplete();
     } else {
-      // Return to home
-      returnToHome(el);
+      // FAIL - Return to home
       document.querySelectorAll('.target').forEach(t => t.classList.remove('highlight'));
+      
+      // Get home slot position again (in case screen resized)
+      const homeRect = homeSlot.getBoundingClientRect();
+      
+      // Animate back
+      el.style.transition = 'all 0.3s ease';
+      el.style.left = homeRect.left + 'px';
+      el.style.top = homeRect.top + 'px';
+      el.style.transform = 'scale(1)'; // Remove pop effect
+
+      // After animation, put it back in the box structure
+      setTimeout(() => {
+        el.classList.remove('dragging');
+        el.style.transition = '';
+        el.style.width = '100%';
+        el.style.height = '100%';
+        el.style.left = '0';
+        el.style.top = '0';
+        el.style.position = 'absolute'; // Reset to CSS default
+        homeSlot.appendChild(el);
+      }, 300);
     }
   }
 
-  function moveAt(e) {
-    const pageX = e.touches ? e.touches[0].pageX : e.pageX;
-    const pageY = e.touches ? e.touches[0].pageY : e.pageY;
-    
-    // Offset so finger doesn't cover the item completely
-    el.style.left = (pageX - el.offsetWidth / 2) + 'px';
-    el.style.top = (pageY - el.offsetHeight / 2 - 50) + 'px'; 
-  }
-
-  // Event Listeners
-  el.addEventListener('mousedown', onStart);
-  el.addEventListener('touchstart', onStart, {passive: false});
-
-  // Global listeners for move/end to prevent losing the drag if moving fast
-  window.addEventListener('mousemove', onMove, {passive: false});
-  window.addEventListener('touchmove', onMove, {passive: false});
+  // Listeners
+  el.addEventListener('touchstart', onStart, {passive:false});
+  el.addEventListener('touchmove', onMove, {passive:false});
+  el.addEventListener('touchend', onEnd);
   
+  el.addEventListener('mousedown', onStart);
+  window.addEventListener('mousemove', onMove); // Window listener prevents losing drag
   window.addEventListener('mouseup', onEnd);
-  window.addEventListener('touchend', onEnd);
 }
 
+// --- UTILS ---
 function isColliding(el1, el2) {
   const r1 = el1.getBoundingClientRect();
   const r2 = el2.getBoundingClientRect();
@@ -379,140 +325,79 @@ function isColliding(el1, el2) {
     (r1.left + r1.width/2) - (r2.left + r2.width/2),
     (r1.top + r1.height/2) - (r2.top + r2.height/2)
   );
-  return dist < 80; // Collision threshold
-}
-
-function returnToHome(el) {
-  el.style.transition = "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
-  el.style.left = el.dataset.homeX + 'px';
-  el.style.top = el.dataset.homeY + 'px';
-}
-
-function handleMatch(el, target) {
-  // Snap visuals
-  const rect = target.getBoundingClientRect();
-  el.style.transition = "all 0.2s ease";
-  el.style.left = rect.left + 'px';
-  el.style.top = rect.top + 'px';
-  el.style.opacity = '0'; // Hide drag item, show matched target
-
-  target.classList.remove('highlight');
-  target.classList.add('matched'); // Turns solid and pops
-
-  // Sound & FX
-  playPopSound();
-  spawnConfetti(rect.left + rect.width/2, rect.top + rect.height/2, 15);
-  
-  // Cleanup drag item after anim
-  setTimeout(() => el.remove(), 200);
-
-  matchesLeft--;
-  if (matchesLeft === 0) {
-    levelComplete();
-  }
+  return dist < 60; // Sensitivity
 }
 
 function levelComplete() {
   score += 10;
   document.getElementById('score').innerText = score;
-  
-  spawnConfetti(window.innerWidth/2, window.innerHeight/2, 100);
-  playWinSound();
-
-  const msg = document.getElementById('level-msg');
-  msg.classList.add('show');
-
-  setTimeout(() => {
-    initLevel();
-  }, 2000);
+  document.getElementById('level-msg').classList.add('show');
+  playWin();
+  spawnConfetti({left: window.innerWidth/2, top: window.innerHeight/2, width:0, height:0}, 100);
+  setTimeout(initLevel, 2000);
 }
 
-/* --------------------------------------------------
-   5. AUDIO & VISUAL FX
-   --------------------------------------------------
-*/
-function playPopSound() {
-  const osc = audioCtx.createOscillator();
+// --- FX ---
+function playPop() {
+  const o = audioCtx.createOscillator(); 
   const g = audioCtx.createGain();
-  osc.connect(g); g.connect(audioCtx.destination);
-  
-  osc.frequency.setValueAtTime(500, audioCtx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
-  
-  g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-  
-  osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.frequency.value = 600; 
+  o.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+  g.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+  g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+  o.start(); o.stop(audioCtx.currentTime + 0.1);
 }
 
-function playWinSound() {
-  const now = audioCtx.currentTime;
-  // Simple Major Chord Arpeggio
-  [440, 554, 659].forEach((freq, i) => {
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.connect(g); g.connect(audioCtx.destination);
-    
-    osc.frequency.value = freq;
-    g.gain.setValueAtTime(0, now + i*0.1);
-    g.gain.linearRampToValueAtTime(0.1, now + i*0.1 + 0.05);
-    g.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 0.4);
-    
-    osc.start(now + i*0.1); 
-    osc.stop(now + i*0.1 + 0.4);
+function playWin() {
+  [400, 500, 600].forEach((f, i) => {
+    setTimeout(() => {
+      const o = audioCtx.createOscillator(); 
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.value = f; 
+      g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+      o.start(); o.stop(audioCtx.currentTime + 0.3);
+    }, i*100);
   });
 }
 
-// Simple Confetti Engine
-const canvas = document.getElementById('confetti');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-let particles = [];
+// Confetti
+const cvs = document.getElementById('confetti');
+const ctx = cvs.getContext('2d');
+cvs.width = window.innerWidth; cvs.height = window.innerHeight;
+let parts = [];
 
-function spawnConfetti(x, y, amount) {
-  const colors = ['#ff0', '#f00', '#0f0', '#00f', '#f0f', '#0ff'];
-  for(let i=0; i<amount; i++) {
-    particles.push({
-      x: x, y: y,
-      vx: (Math.random()-0.5) * 15,
-      vy: (Math.random()-0.5) * 15,
-      grav: 0.5,
-      life: 60 + Math.random()*30,
-      color: colors[Math.floor(Math.random()*colors.length)]
+function spawnConfetti(rect, count=20) {
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  for(let i=0; i<count; i++) {
+    parts.push({
+      x: cx, y: cy,
+      vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15,
+      c: `hsl(${Math.random()*360}, 100%, 50%)`, life: 50
     });
   }
 }
 
 function loop() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(let i=particles.length-1; i>=0; i--) {
-    let p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += p.grav; // Gravity
-    p.life--;
-    
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, 8, 8);
-    
-    if(p.life <= 0) particles.splice(i, 1);
-  }
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  parts.forEach((p, i) => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life--;
+    ctx.fillStyle = p.c; ctx.fillRect(p.x, p.y, 8, 8);
+    if(p.life<=0) parts.splice(i,1);
+  });
   requestAnimationFrame(loop);
 }
 loop();
 
-// Handle Resize
 window.addEventListener('resize', () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  // If we resize, items might be out of place, so we restart level for simplicity
-  initLevel();
+  cvs.width = window.innerWidth; cvs.height = window.innerHeight;
 });
 
-// START
+// Start
 initLevel();
-
 </script>
 </body>
 </html>
