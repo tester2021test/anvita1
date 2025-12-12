@@ -163,7 +163,7 @@
     box-shadow: 0 0 50px rgba(0,0,0,0.2);
     z-index: 2000; transition: transform 0.3s;
     text-align: center;
-    color: #E91E63; /* Pink color for Anvita */
+    color: #E91E63;
     font-weight: bold;
     border: 4px solid #FFCDD2;
   }
@@ -192,41 +192,113 @@
 
 <script>
 /* --------------------------------------------------
-   DATA
+   MASSIVE DATASET (150+ ITEMS)
    -------------------------------------------------- */
 const DATA = [
-  {id:'lion', i:'🦁', n:'Lion'}, {id:'dog', i:'🐶', n:'Dog'}, 
-  {id:'cat', i:'🐱', n:'Cat'}, {id:'bear', i:'🐻', n:'Bear'}, 
-  {id:'panda', i:'🐼', n:'Panda'}, {id:'pig', i:'🐷', n:'Pig'}, 
-  {id:'frog', i:'🐸', n:'Frog'}, {id:'octopus', i:'🐙', n:'Octopus'}, 
-  {id:'turtle', i:'🐢', n:'Turtle'}, {id:'bee', i:'🐝', n:'Bee'},
-  {id:'apple', i:'🍎', n:'Apple'}, {id:'banana', i:'🍌', n:'Banana'}, 
-  {id:'grapes', i:'🍇', n:'Grapes'}, {id:'pizza', i:'🍕', n:'Pizza'}, 
-  {id:'burger', i:'🍔', n:'Burger'}, {id:'car', i:'🚗', n:'Car'}, 
-  {id:'bus', i:'🚌', n:'Bus'}, {id:'rocket', i:'🚀', n:'Rocket'}, 
-  {id:'ship', i:'🚢', n:'Ship'}, {id:'train', i:'🚂', n:'Train'},
-  {id:'sun', i:'☀️', n:'Sun'}, {id:'moon', i:'🌙', n:'Moon'}, 
-  {id:'star', i:'⭐', n:'Star'}, {id:'ball', i:'⚽', n:'Soccer Ball'}, 
-  {id:'flower', i:'🌻', n:'Flower'}, {id:'fox', i:'🦊', n:'Fox'}, 
-  {id:'mouse', i:'🐭', n:'Mouse'}, {id:'bunny', i:'🐰', n:'Bunny'}, 
-  {id:'koala', i:'🐨', n:'Koala'}, {id:'tiger', i:'🐯', n:'Tiger'},
-  {id:'cow', i:'🐮', n:'Cow'}, {id:'chick', i:'🐤', n:'Chick'}, 
-  {id:'whale', i:'🐳', n:'Whale'}, {id:'fish', i:'🐠', n:'Fish'}, 
-  {id:'crab', i:'🦀', n:'Crab'}, {id:'corn', i:'🌽', n:'Corn'}, 
-  {id:'carrot', i:'🥕', n:'Carrot'}, {id:'fries', i:'🍟', n:'French Fries'}, 
-  {id:'egg', i:'🥚', n:'Egg'}, {id:'cookie', i:'🍪', n:'Cookie'},
-  {id:'choco', i:'🍫', n:'Chocolate'}, {id:'candy', i:'🍬', n:'Candy'}, 
-  {id:'cake', i:'🍰', n:'Cake'}, {id:'donut', i:'🍩', n:'Donut'}, 
-  {id:'ice', i:'🍦', n:'Ice Cream'}, {id:'police', i:'🚓', n:'Police Car'}, 
-  {id:'fire', i:'🚒', n:'Fire Truck'}, {id:'taxi', i:'🚕', n:'Taxi'}, 
-  {id:'bike', i:'🚲', n:'Bicycle'}, {id:'plane', i:'✈️', n:'Airplane'},
-  {id:'tree', i:'🌲', n:'Tree'}, {id:'leaf', i:'🍁', n:'Leaf'}, 
-  {id:'rose', i:'🌹', n:'Rose'}, {id:'cactus', i:'🌵', n:'Cactus'}, 
-  {id:'palm', i:'🌴', n:'Palm Tree'}, {id:'gift', i:'🎁', n:'Gift'}, 
-  {id:'bell', i:'🔔', n:'Bell'}, {id:'music', i:'🎵', n:'Music'}, 
-  {id:'heart', i:'❤️', n:'Heart'}, {id:'gem', i:'💎', n:'Diamond'},
-  {id:'book', i:'📚', n:'Book'}, {id:'bulb', i:'💡', n:'Light Bulb'}, 
-  {id:'phone', i:'📱', n:'Phone'}, {id:'tv', i:'📺', n:'TV'}
+  // --- ANIMALS (ZOO & WILD) ---
+  {id:'lion', i:'🦁', n:'Lion'}, {id:'tiger', i:'🐯', n:'Tiger'},
+  {id:'bear', i:'🐻', n:'Bear'}, {id:'panda', i:'🐼', n:'Panda'},
+  {id:'elephant', i:'🐘', n:'Elephant'}, {id:'giraffe', i:'🦒', n:'Giraffe'},
+  {id:'zebra', i:'🦓', n:'Zebra'}, {id:'monkey', i:'🐵', n:'Monkey'},
+  {id:'gorilla', i:'🦍', n:'Gorilla'}, {id:'kangaroo', i:'🦘', n:'Kangaroo'},
+  {id:'camel', i:'🐪', n:'Camel'}, {id:'rhino', i:'🦏', n:'Rhino'},
+  {id:'hippo', i:'🦛', n:'Hippo'}, {id:'wolf', i:'🐺', n:'Wolf'},
+  {id:'fox', i:'🦊', n:'Fox'}, {id:'koala', i:'🐨', n:'Koala'},
+
+  // --- ANIMALS (FARM & PETS) ---
+  {id:'dog', i:'🐶', n:'Dog'}, {id:'cat', i:'🐱', n:'Cat'},
+  {id:'mouse', i:'🐭', n:'Mouse'}, {id:'bunny', i:'🐰', n:'Bunny'},
+  {id:'cow', i:'🐮', n:'Cow'}, {id:'pig', i:'🐷', n:'Pig'},
+  {id:'sheep', i:'🐑', n:'Sheep'}, {id:'horse', i:'🐴', n:'Horse'},
+  {id:'goat', i:'🐐', n:'Goat'}, {id:'chicken', i:'🐔', n:'Chicken'},
+  {id:'chick', i:'🐤', n:'Chick'}, {id:'duck', i:'🦆', n:'Duck'},
+  {id:'turkey', i:'🦃', n:'Turkey'}, {id:'hamster', i:'🐹', n:'Hamster'},
+
+  // --- OCEAN & WATER ---
+  {id:'frog', i:'🐸', n:'Frog'}, {id:'octopus', i:'🐙', n:'Octopus'},
+  {id:'turtle', i:'🐢', n:'Turtle'}, {id:'whale', i:'🐳', n:'Whale'},
+  {id:'dolphin', i:'🐬', n:'Dolphin'}, {id:'fish', i:'🐠', n:'Fish'},
+  {id:'shark', i:'🦈', n:'Shark'}, {id:'crab', i:'🦀', n:'Crab'},
+  {id:'shrimp', i:'🦐', n:'Shrimp'}, {id:'squid', i:'🦑', n:'Squid'},
+  {id:'penguin', i:'🐧', n:'Penguin'}, {id:'croc', i:'🐊', n:'Crocodile'},
+
+  // --- BUGS & SMALL CREATURES ---
+  {id:'bee', i:'🐝', n:'Bee'}, {id:'butterfly', i:'🦋', n:'Butterfly'},
+  {id:'ladybug', i:'🐞', n:'Ladybug'}, {id:'spider', i:'🕷️', n:'Spider'},
+  {id:'snail', i:'🐌', n:'Snail'}, {id:'caterpillar', i:'🐛', n:'Caterpillar'},
+  {id:'ant', i:'🐜', n:'Ant'}, {id:'dino', i:'🦖', n:'Dinosaur'},
+
+  // --- FRUITS ---
+  {id:'apple', i:'🍎', n:'Apple'}, {id:'banana', i:'🍌', n:'Banana'},
+  {id:'grapes', i:'🍇', n:'Grapes'}, {id:'orange', i:'🍊', n:'Orange'},
+  {id:'lemon', i:'🍋', n:'Lemon'}, {id:'strawberry', i:'🍓', n:'Strawberry'},
+  {id:'cherry', i:'🍒', n:'Cherry'}, {id:'peach', i:'🍑', n:'Peach'},
+  {id:'pear', i:'🍐', n:'Pear'}, {id:'pineapple', i:'🍍', n:'Pineapple'},
+  {id:'watermelon', i:'🍉', n:'Watermelon'}, {id:'kiwi', i:'🥝', n:'Kiwi'},
+  {id:'coconut', i:'🥥', n:'Coconut'}, {id:'mango', i:'🥭', n:'Mango'},
+
+  // --- VEGETABLES & FOOD ---
+  {id:'corn', i:'🌽', n:'Corn'}, {id:'carrot', i:'🥕', n:'Carrot'},
+  {id:'broccoli', i:'🥦', n:'Broccoli'}, {id:'tomato', i:'🍅', n:'Tomato'},
+  {id:'mushroom', i:'🍄', n:'Mushroom'}, {id:'pepper', i:'🌶️', n:'Pepper'},
+  {id:'potato', i:'🥔', n:'Potato'}, {id:'avocado', i:'🥑', n:'Avocado'},
+  {id:'pizza', i:'🍕', n:'Pizza'}, {id:'burger', i:'🍔', n:'Burger'},
+  {id:'fries', i:'🍟', n:'French Fries'}, {id:'hotdog', i:'🌭', n:'Hot Dog'},
+  {id:'sandwich', i:'🥪', n:'Sandwich'}, {id:'taco', i:'🌮', n:'Taco'},
+  {id:'egg', i:'🥚', n:'Egg'}, {id:'bread', i:'🍞', n:'Bread'},
+  {id:'cheese', i:'🧀', n:'Cheese'}, {id:'popcorn', i:'🍿', n:'Popcorn'},
+  {id:'cookie', i:'🍪', n:'Cookie'}, {id:'choco', i:'🍫', n:'Chocolate'},
+  {id:'candy', i:'🍬', n:'Candy'}, {id:'cake', i:'🍰', n:'Cake'},
+  {id:'donut', i:'🍩', n:'Donut'}, {id:'ice', i:'🍦', n:'Ice Cream'},
+  {id:'milk', i:'🥛', n:'Milk'}, {id:'juice', i:'🧃', n:'Juice'},
+
+  // --- VEHICLES ---
+  {id:'car', i:'🚗', n:'Car'}, {id:'bus', i:'🚌', n:'Bus'},
+  {id:'taxi', i:'🚕', n:'Taxi'}, {id:'police', i:'🚓', n:'Police Car'},
+  {id:'fire', i:'🚒', n:'Fire Truck'}, {id:'ambulance', i:'🚑', n:'Ambulance'},
+  {id:'bike', i:'🚲', n:'Bicycle'}, {id:'scooter', i:'🛴', n:'Scooter'},
+  {id:'moto', i:'🏍️', n:'Motorcycle'}, {id:'train', i:'🚂', n:'Train'},
+  {id:'plane', i:'✈️', n:'Airplane'}, {id:'heli', i:'🚁', n:'Helicopter'},
+  {id:'rocket', i:'🚀', n:'Rocket'}, {id:'ship', i:'🚢', n:'Ship'},
+  {id:'boat', i:'⛵', n:'Boat'}, {id:'tractor', i:'🚜', n:'Tractor'},
+
+  // --- CLOTHES & ACCESSORIES ---
+  {id:'shirt', i:'👕', n:'Shirt'}, {id:'dress', i:'👗', n:'Dress'},
+  {id:'shoe', i:'👟', n:'Shoe'}, {id:'socks', i:'🧦', n:'Socks'},
+  {id:'hat', i:'🧢', n:'Hat'}, {id:'glasses', i:'👓', n:'Glasses'},
+  {id:'ring', i:'💍', n:'Ring'}, {id:'crown', i:'👑', n:'Crown'},
+  {id:'lipstick', i:'💄', n:'Lipstick'}, {id:'purse', i:'👛', n:'Purse'},
+
+  // --- NATURE & WEATHER ---
+  {id:'sun', i:'☀️', n:'Sun'}, {id:'moon', i:'🌙', n:'Moon'},
+  {id:'star', i:'⭐', n:'Star'}, {id:'cloud', i:'☁️', n:'Cloud'},
+  {id:'rain', i:'🌧️', n:'Rain'}, {id:'snow', i:'❄️', n:'Snow'},
+  {id:'rainbow', i:'🌈', n:'Rainbow'}, {id:'fire_el', i:'🔥', n:'Fire'},
+  {id:'tree', i:'🌲', n:'Tree'}, {id:'flower', i:'🌻', n:'Flower'},
+  {id:'rose', i:'🌹', n:'Rose'}, {id:'cactus', i:'🌵', n:'Cactus'},
+  {id:'palm', i:'🌴', n:'Palm Tree'}, {id:'leaf', i:'🍁', n:'Leaf'},
+  {id:'earth', i:'🌍', n:'Earth'},
+
+  // --- SPORTS & HOBBIES ---
+  {id:'ball', i:'⚽', n:'Soccer Ball'}, {id:'basket', i:'🏀', n:'Basketball'},
+  {id:'tennis', i:'🎾', n:'Tennis'}, {id:'baseball', i:'⚾', n:'Baseball'},
+  {id:'football', i:'🏈', n:'Football'}, {id:'trophy', i:'🏆', n:'Trophy'},
+  {id:'medal', i:'🥇', n:'Medal'}, {id:'guitar', i:'🎸', n:'Guitar'},
+  {id:'drum', i:'🥁', n:'Drum'}, {id:'mic', i:'🎤', n:'Microphone'},
+  {id:'paint', i:'🎨', n:'Paint'}, {id:'game', i:'🎮', n:'Game'},
+
+  // --- HOUSE & OBJECTS ---
+  {id:'gift', i:'🎁', n:'Gift'}, {id:'bell', i:'🔔', n:'Bell'},
+  {id:'music', i:'🎵', n:'Music'}, {id:'heart', i:'❤️', n:'Heart'},
+  {id:'gem', i:'💎', n:'Diamond'}, {id:'book', i:'📚', n:'Book'},
+  {id:'bulb', i:'💡', n:'Light Bulb'}, {id:'phone', i:'📱', n:'Phone'},
+  {id:'tv', i:'📺', n:'TV'}, {id:'camera', i:'📷', n:'Camera'},
+  {id:'balloon', i:'🎈', n:'Balloon'}, {id:'umbrella', i:'☔', n:'Umbrella'},
+  {id:'pencil', i:'✏️', n:'Pencil'}, {id:'scissor', i:'✂️', n:'Scissors'},
+  {id:'key', i:'🔑', n:'Key'}, {id:'lock', i:'🔒', n:'Lock'},
+  {id:'clock', i:'⏰', n:'Clock'}, {id:'bed', i:'🛏️', n:'Bed'},
+  {id:'chair', i:'🪑', n:'Chair'}, {id:'bath', i:'🛁', n:'Bath'},
+  {id:'toilet', i:'🚽', n:'Toilet'}, {id:'teddy', i:'🧸', n:'Teddy Bear'}
 ];
 
 // --- STATE ---
